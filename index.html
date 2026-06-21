@@ -1,0 +1,1268 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>La Ruleta del Almuerzo — Gabi & Dami</title>
+<meta name="description" content="Ruleta semanal para sortear quién cocina y qué se prepara de almuerzo, de lunes a viernes.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bevan&family=Work+Sans:ital,wght@0,400;0,500;0,600;0,700;1,500&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --verde-esmalte: #213524;
+    --verde-esmalte-2: #2c4430;
+    --crema: #FBF3E3;
+    --crema-soft: #F1E6CC;
+    --terracota: #C1502E;
+    --terracota-dark: #9c3e22;
+    --mostaza: #E3A23C;
+    --tinta: #1B2118;
+    --gabi: #C97064;
+    --gabi-dark: #a8554a;
+    --dami: #3E7C8A;
+    --dami-dark: #2c5d68;
+    --verde-ok: #5C8A52;
+    --rojo-falta: #B8543F;
+    --radius: 14px;
+    --display: "Bevan", "Georgia", serif;
+    --body: "Work Sans", system-ui, sans-serif;
+    --mono: "JetBrains Mono", "Courier New", monospace;
+  }
+
+  *{ box-sizing: border-box; }
+
+  html{ scroll-behavior: smooth; }
+
+  body{
+    margin: 0;
+    background: var(--verde-esmalte);
+    background-image:
+      radial-gradient(circle at 20% 0%, rgba(255,255,255,0.04), transparent 40%),
+      radial-gradient(circle at 100% 100%, rgba(255,255,255,0.03), transparent 45%);
+    color: var(--crema);
+    font-family: var(--body);
+    line-height: 1.5;
+    min-height: 100vh;
+    padding: 0 0 60px;
+  }
+
+  a{ color: var(--mostaza); }
+
+  :focus-visible{
+    outline: 3px solid var(--mostaza);
+    outline-offset: 3px;
+  }
+
+  /* ---------- layout shell ---------- */
+  .wrap{
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 36px 20px 0;
+  }
+
+  header.hero{
+    text-align: center;
+    padding-bottom: 8px;
+  }
+
+  .eyebrow{
+    font-family: var(--mono);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    color: var(--mostaza);
+    margin: 0 0 10px;
+  }
+
+  h1{
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: clamp(2.1rem, 6vw, 3.4rem);
+    margin: 0 0 10px;
+    letter-spacing: 0.01em;
+    color: var(--crema);
+    text-shadow: 0 2px 0 rgba(0,0,0,0.25);
+  }
+
+  .subtitle{
+    max-width: 520px;
+    margin: 0 auto 8px;
+    color: rgba(251,243,227,0.78);
+    font-size: 1rem;
+  }
+
+  .chefs-legend{
+    display: flex;
+    justify-content: center;
+    gap: 18px;
+    margin: 18px 0 6px;
+    font-family: var(--mono);
+    font-size: 0.82rem;
+  }
+  .chefs-legend span{
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .dot{
+    width: 12px; height: 12px; border-radius: 50%; display:inline-block;
+  }
+  .dot.gabi{ background: var(--gabi); }
+  .dot.dami{ background: var(--dami); }
+
+  /* ---------- wheel ---------- */
+  .wheel-stage{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 28px 0 8px;
+  }
+
+  .wheel-frame{
+    position: relative;
+    width: 220px;
+    height: 220px;
+    margin-bottom: 22px;
+  }
+
+  .pointer{
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0; height: 0;
+    border-left: 14px solid transparent;
+    border-right: 14px solid transparent;
+    border-top: 22px solid var(--mostaza);
+    filter: drop-shadow(0 2px 2px rgba(0,0,0,0.35));
+    z-index: 3;
+  }
+
+  .wheel{
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: conic-gradient(from 90deg, var(--dami) 0deg 180deg, var(--gabi) 180deg 360deg);
+    border: 6px solid var(--crema-soft);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.35), inset 0 0 0 2px rgba(0,0,0,0.15);
+    position: relative;
+    transition: transform 2.4s cubic-bezier(.17,.89,.32,1.02);
+    transform: rotate(0deg);
+  }
+
+  .wheel-label{
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--display);
+    letter-spacing: 0.04em;
+    font-size: 1rem;
+    color: var(--crema);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+  }
+  .wheel-label.top{ top: 26%; }
+  .wheel-label.bottom{ top: 64%; }
+
+  .hub{
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 46px; height: 46px;
+    background: var(--crema);
+    border-radius: 50%;
+    transform: translate(-50%,-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    z-index: 2;
+  }
+
+  .spin-btn{
+    font-family: var(--display);
+    font-size: 1.05rem;
+    letter-spacing: 0.03em;
+    color: var(--crema);
+    background: var(--terracota);
+    border: none;
+    padding: 14px 30px;
+    border-radius: 999px;
+    cursor: pointer;
+    box-shadow: 0 6px 0 var(--terracota-dark);
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+  }
+  .spin-btn:hover{ transform: translateY(-2px); }
+  .spin-btn:active{
+    transform: translateY(3px);
+    box-shadow: 0 2px 0 var(--terracota-dark);
+  }
+  .spin-btn:disabled{
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .result-line{
+    margin-top: 16px;
+    font-family: var(--mono);
+    font-size: 0.92rem;
+    min-height: 1.4em;
+    color: var(--mostaza);
+    text-align: center;
+  }
+
+  /* ---------- day cards ---------- */
+  .week{
+    margin-top: 40px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+  }
+
+  .card{
+    background: var(--crema);
+    color: var(--tinta);
+    border-radius: var(--radius);
+    border-top: 6px solid var(--terracota);
+    padding: 16px 16px 14px;
+    box-shadow: 0 10px 18px rgba(0,0,0,0.25);
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.4s ease, transform 0.4s ease, border-color 0.3s ease;
+    position: relative;
+  }
+  .card.revealed{ opacity: 1; transform: translateY(0); }
+  .card.is-today{ border-top-color: var(--mostaza); }
+  .card.is-today::after{
+    content: "HOY";
+    position: absolute;
+    top: 10px; right: 12px;
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.08em;
+    color: var(--terracota-dark);
+  }
+
+  .day-name{
+    font-family: var(--display);
+    font-size: 1.05rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin: 0 0 8px;
+  }
+
+  .chef-tag{
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #fff;
+    padding: 3px 10px;
+    border-radius: 999px;
+    margin-bottom: 10px;
+  }
+  .chef-tag.gabi{ background: var(--gabi-dark); }
+  .chef-tag.dami{ background: var(--dami-dark); }
+
+  .dish-name{
+    font-weight: 600;
+    font-size: 0.98rem;
+    margin: 0 0 12px;
+    min-height: 2.6em;
+  }
+  .dish-name.spinning{
+    color: rgba(27,33,24,0.45);
+    font-style: italic;
+  }
+
+  .toggle-ing{
+    font-family: var(--mono);
+    font-size: 0.74rem;
+    background: none;
+    border: none;
+    color: var(--terracota-dark);
+    cursor: pointer;
+    padding: 0;
+    text-decoration: underline;
+  }
+
+  .ratio-badge{
+    position: absolute;
+    top: 10px; right: 12px;
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    padding: 2px 7px;
+    border-radius: 999px;
+    color: #fff;
+  }
+  .ratio-low{ background: var(--rojo-falta); }
+  .ratio-mid{ background: var(--mostaza); color: var(--tinta); }
+  .ratio-full{ background: var(--verde-ok); }
+
+  .ing-list{
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed rgba(27,33,24,0.25);
+  }
+  .ing-list label{
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 0.86rem;
+    margin-bottom: 7px;
+    cursor: pointer;
+  }
+  .ing-list input{
+    margin-top: 3px;
+    width: 16px; height: 16px;
+    accent-color: var(--verde-ok);
+    flex-shrink: 0;
+  }
+  .hidden{ display: none; }
+
+  /* ---------- summary ---------- */
+  .summary{
+    margin-top: 46px;
+  }
+  .summary h2{
+    font-family: var(--display);
+    font-size: 1.5rem;
+    text-align: center;
+    margin-bottom: 16px;
+    color: var(--crema);
+  }
+  table.menu-board{
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--crema);
+    color: var(--tinta);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+    font-size: 0.92rem;
+  }
+  table.menu-board thead tr{
+    background: var(--terracota);
+    color: #fff;
+  }
+  table.menu-board th, table.menu-board td{
+    padding: 10px 14px;
+    text-align: left;
+  }
+  table.menu-board th{
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  table.menu-board tbody tr:nth-child(even){
+    background: var(--crema-soft);
+  }
+  table.menu-board td.ratio-cell{
+    font-family: var(--mono);
+    font-size: 0.8rem;
+  }
+
+  .reset-row{
+    text-align: center;
+    margin-top: 26px;
+  }
+  .reset-btn{
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    background: none;
+    border: 1px solid rgba(251,243,227,0.4);
+    color: var(--crema);
+    padding: 9px 18px;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  .reset-btn:hover{ border-color: var(--mostaza); color: var(--mostaza); }
+
+  /* ---------- gestor de platos ---------- */
+  .dish-manager{
+    margin-top: 40px;
+    background: rgba(251,243,227,0.06);
+    border: 1px dashed rgba(251,243,227,0.25);
+    border-radius: var(--radius);
+    padding: 20px 22px;
+  }
+  .dish-manager h2{
+    font-family: var(--display);
+    font-size: 1.2rem;
+    margin: 0 0 4px;
+    color: var(--crema);
+  }
+  .dish-manager .hint{
+    font-size: 0.84rem;
+    color: rgba(251,243,227,0.65);
+    margin: 0 0 14px;
+  }
+
+  .add-dish-btn{
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    background: var(--mostaza);
+    color: var(--tinta);
+    border: none;
+    padding: 9px 16px;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  .add-dish-btn:hover{ background: #eeb158; }
+
+  .dish-form{
+    margin-top: 18px;
+    background: var(--crema);
+    color: var(--tinta);
+    border-radius: var(--radius);
+    padding: 18px;
+  }
+  .dish-form label.field-label{
+    display: block;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    color: var(--terracota-dark);
+  }
+  .dish-form input[type="text"]{
+    width: 100%;
+    font-family: var(--body);
+    font-size: 0.95rem;
+    padding: 9px 11px;
+    border: 1px solid rgba(27,33,24,0.2);
+    border-radius: 8px;
+    margin-bottom: 12px;
+    background: #fff;
+  }
+  .ing-rows{ margin-bottom: 8px; }
+  .ing-row{
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .ing-row input{ flex: 1; }
+  .ing-row .remove-ing{
+    background: none;
+    border: none;
+    color: var(--rojo-falta);
+    font-size: 1.1rem;
+    cursor: pointer;
+    width: 28px;
+  }
+  .add-ing-btn{
+    font-family: var(--mono);
+    font-size: 0.76rem;
+    background: none;
+    border: 1px dashed rgba(27,33,24,0.3);
+    color: var(--tinta);
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-bottom: 16px;
+  }
+  .dish-form-actions{
+    display: flex;
+    gap: 10px;
+  }
+  .save-dish-btn{
+    font-family: var(--display);
+    font-size: 0.92rem;
+    background: var(--terracota);
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  .cancel-dish-btn{
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    background: none;
+    border: 1px solid rgba(27,33,24,0.25);
+    color: var(--tinta);
+    padding: 10px 16px;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  .form-msg{
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    margin-top: 10px;
+    min-height: 1.2em;
+  }
+  .form-msg.error{ color: var(--rojo-falta); }
+  .form-msg.ok{ color: var(--verde-ok); }
+
+  .custom-dish-list{
+    margin-top: 16px;
+    list-style: none;
+    padding: 0;
+    max-height: 380px;
+    overflow-y: auto;
+  }
+  .custom-dish-list li{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.86rem;
+    padding: 7px 0;
+    border-bottom: 1px solid rgba(251,243,227,0.12);
+  }
+  .custom-dish-list li > span:first-child{
+    flex: 1;
+    min-width: 0;
+  }
+  .row-actions{
+    display: flex;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  .row-action{
+    background: none;
+    border: none;
+    color: rgba(251,243,227,0.55);
+    cursor: pointer;
+    font-size: 0.76rem;
+    text-decoration: underline;
+    font-family: var(--mono);
+    padding: 0;
+    white-space: nowrap;
+  }
+  .row-action.edit-dish:hover{ color: var(--mostaza); }
+  .row-action.reset-dish:hover{ color: var(--mostaza); }
+  .row-action.remove-dish:hover{ color: var(--rojo-falta); }
+
+  .save-status{
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: rgba(251,243,227,0.4);
+    margin-top: 6px;
+  }
+
+  footer{
+    text-align: center;
+    margin-top: 50px;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: rgba(251,243,227,0.45);
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .wheel{ transition: none !important; }
+    .card{ transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="hero">
+    <p class="eyebrow">Lunes a viernes · Cocina por turnos</p>
+    <h1>La Ruleta del Almuerzo</h1>
+    <p class="subtitle">Girá la ruleta para sortear quién cocina cada día y qué plato de la casa toca. Después tachá lo que ya tenés en la heladera.</p>
+    <div class="chefs-legend">
+      <span><i class="dot gabi"></i> Gabi</span>
+      <span><i class="dot dami"></i> Dami</span>
+    </div>
+  </header>
+
+  <div class="wheel-stage">
+    <div class="wheel-frame">
+      <div class="pointer"></div>
+      <div class="wheel" id="wheel">
+        <div class="wheel-label top">GABI</div>
+        <div class="wheel-label bottom">DAMI</div>
+      </div>
+      <div class="hub">🍽️</div>
+    </div>
+    <button class="spin-btn" id="spinBtn">Girar la ruleta</button>
+    <p class="result-line" id="resultLine">Todavía no se giró esta semana.</p>
+    <p class="save-status" id="saveStatus"></p>
+  </div>
+
+  <main>
+    <div class="week" id="weekGrid"></div>
+
+    <section class="summary hidden" id="summarySection">
+      <h2>Resumen de la semana</h2>
+      <table class="menu-board">
+        <thead>
+          <tr>
+            <th>Día</th>
+            <th>Chef</th>
+            <th>Plato</th>
+            <th>Listo</th>
+          </tr>
+        </thead>
+        <tbody id="summaryBody"></tbody>
+      </table>
+      <div class="reset-row">
+        <button class="reset-btn" id="resetBtn">↻ Girar de nuevo / nueva semana</button>
+      </div>
+    </section>
+
+    <section class="dish-manager">
+      <h2>Tus platos</h2>
+      <p class="hint">Sumá una especialidad nueva o editá cualquiera de las que ya están en la lista.</p>
+      <button class="add-dish-btn" id="addDishBtn" aria-expanded="false">+ Agregar plato</button>
+
+      <form class="dish-form hidden" id="dishForm">
+        <label class="field-label" for="dishNameInput">Nombre del plato</label>
+        <input type="text" id="dishNameInput" placeholder="Ej: Locro casero" autocomplete="off">
+
+        <label class="field-label">Ingredientes</label>
+        <div class="ing-rows" id="ingRows"></div>
+        <button type="button" class="add-ing-btn" id="addIngBtn">+ Agregar ingrediente</button>
+
+        <div class="dish-form-actions">
+          <button type="submit" class="save-dish-btn" id="saveDishBtn">Guardar plato</button>
+          <button type="button" class="cancel-dish-btn" id="cancelDishBtn">Cancelar</button>
+        </div>
+        <p class="form-msg" id="formMsg"></p>
+      </form>
+
+      <ul class="custom-dish-list" id="dishListEl"></ul>
+    </section>
+  </main>
+
+  <footer>
+    El progreso, los platos que agreguen y las ediciones se guardan en este navegador.
+  </footer>
+</div>
+
+<script>
+  /* ============================================================
+     1) BASE DE PLATOS
+     Para agregar o editar un plato, sumá un objeto al array.
+     "ingredients" se muestra como checklist.
+     ============================================================ */
+  const DISHES = [
+    { name: "Tarta de verdura", ingredients: [
+      "Masa de tarta", "Cebolla", "Pimiento morrón", "Huevos", "Queso cremoso",
+      "Verdura principal (acelga, espinaca, zucchini o calabaza)", "Jamón (opcional)"
+    ]},
+    { name: "Tarta de pollo y calabaza", ingredients: [
+      "Masa de tarta", "Cebolla", "Pimiento morrón", "Suprema de pollo", "Calabaza"
+    ]},
+    { name: "Empanadas de verdura", ingredients: [
+      "Masa de empanadas", "Cebolla", "Pimiento morrón", "Huevo cocido",
+      "Verdura principal (acelga, espinaca, zucchini o calabaza)"
+    ]},
+    { name: "Empanadas de carne", ingredients: [
+      "Masa de empanadas", "Cebolla", "Cebolla de verdeo", "Huevo cocido",
+      "Salsa de tomate", "Pimiento morrón"
+    ]},
+    { name: "Verduras asadas al horno con huevos fritos", ingredients: [
+      "Verduras a elección (berenjenas, zucchini, zapallo anco, coliflor)", "Huevos"
+    ]},
+    { name: "Arrocito a la jardinera con berenjenas salteadas", ingredients: [
+      "Arroz blanco", "Choclo", "Arvejas", "Cebolla", "Berenjenas", "Salsa de soja"
+    ]},
+    { name: "Fideos con salsa y albóndigas", ingredients: [
+      "Fideos (tallarines o spaghetti)", "Carne picada", "Pan rallado", "Huevos", "Salsa de tomate"
+    ]},
+    { name: "Milanesas de berenjena con ensalada", ingredients: [
+      "Berenjenas", "Pan rallado", "Huevos", "Tomates frescos", "Lechuga", "Semillas para ensalada"
+    ]},
+    { name: "Milanesas de carne con queso", ingredients: [
+      "Corte para milanesas (bife de novillo o nalga)", "Pan rallado", "Huevos",
+      "Queso cremoso", "Salsa de tomate (para napolitana, opcional)", "Provenzal (ajo y perejil)"
+    ]},
+    { name: "Salteado de verduras con arroz", ingredients: [
+      "Arroz", "Cebolla", "Pimiento morrón", "Ajo", "Zanahoria",
+      "Salsa de soja (opcional)", "Carne cocinada con vino (opcional)"
+    ]},
+    { name: "Discos de merluza con arroz", ingredients: [
+      "Discos de merluza", "Arroz", "Condimentos"
+    ]},
+    { name: "Salteado de pollo y champiñones", ingredients: [
+      "Suprema de pollo o pata de pollo", "Champiñones", "Cebolla", "Pimiento morrón", "Ajo"
+    ]},
+    { name: "Salteado de brócoli, champiñones y carne molida", ingredients: [
+      "Brócoli", "Champiñones", "Carne molida", "Cebolla", "Pimiento morrón", "Ajo"
+    ]},
+    { name: "Zapallitos al horno en rodajas", ingredients: [
+      "Zapallo anco", "Ajo", "Queso cremoso"
+    ]},
+    { name: "Chorizo a la pomarola", ingredients: [
+      "Chorizo", "Salsa de tomate", "Vino", "Cebolla (opcional)", "Tortillas (para acompañar)"
+    ]},
+    { name: "Taquitos", ingredients: [
+      "Tortillas", "Carne salteada", "Verduras salteadas"
+    ]},
+    { name: "Bifecito con queso", ingredients: [
+      "Bife a elección", "Queso cremoso"
+    ]},
+    { name: "Fideos con salsa naranja", ingredients: [
+      "Fideos (tallarines, spaghetti o tirabuzón)",
+      "Puré de tomate + queso crema (opción A)",
+      "Salsa de tomate + queso mantecoso (opción B)"
+    ]},
+    { name: "Ravioles con salsa", ingredients: [
+      "Ravioles", "Salsa de tomate", "Cebolla o ajo"
+    ]}
+  ];
+  DISHES.forEach((dish, i) => { dish.id = `base-${i}`; });
+
+  const DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
+
+  /* ============================================================
+     2) GUARDADO ENTRE VISITAS
+     Usa localStorage cuando está disponible (GitHub Pages, navegador
+     normal). Si el entorno lo bloquea (p. ej. una vista previa en un
+     iframe restringido), cae a memoria para esta misma sesión y no
+     rompe la app.
+     ============================================================ */
+  const STORAGE_KEYS = {
+    customDishes: "ruletaAlmuerzo.customDishes",
+    dishOverrides: "ruletaAlmuerzo.dishOverrides",
+    weekPlan: "ruletaAlmuerzo.weekPlan"
+  };
+  const memoryStore = {};
+  let storageAvailable = true;
+
+  function storageGet(key){
+    try{
+      const raw = localStorage.getItem(key);
+      return raw !== null ? JSON.parse(raw) : null;
+    }catch(e){
+      storageAvailable = false;
+      return memoryStore[key] !== undefined ? memoryStore[key] : null;
+    }
+  }
+
+  function storageSet(key, value){
+    try{
+      localStorage.setItem(key, JSON.stringify(value));
+    }catch(e){
+      storageAvailable = false;
+      memoryStore[key] = value;
+    }
+  }
+
+  function storageRemove(key){
+    try{
+      localStorage.removeItem(key);
+    }catch(e){
+      delete memoryStore[key];
+    }
+  }
+
+  function generateId(prefix){
+    return `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
+  }
+
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g, c => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    }[c]));
+  }
+
+  /* ============================================================
+     3) ESTADO Y PLATOS
+     ============================================================ */
+  let dishOverrides = storageGet(STORAGE_KEYS.dishOverrides) || {};
+
+  // migración suave: si hay platos propios guardados de una versión anterior
+  // sin id, les asignamos uno y volvemos a guardar.
+  let customDishes = (storageGet(STORAGE_KEYS.customDishes) || []).map(d => {
+    if(!d.id) d.id = generateId("custom");
+    return d;
+  });
+  storageSet(STORAGE_KEYS.customDishes, customDishes);
+
+  let ALL_DISHES = [];
+
+  function effectiveBaseDishes(){
+    return DISHES.map(d => {
+      const ov = dishOverrides[d.id];
+      return ov
+        ? { id: d.id, name: ov.name, ingredients: ov.ingredients, isBase: true, edited: true }
+        : { id: d.id, name: d.name, ingredients: d.ingredients, isBase: true, edited: false };
+    });
+  }
+
+  function refreshAllDishes(){
+    ALL_DISHES = effectiveBaseDishes().concat(
+      customDishes.map(d => ({ id: d.id, name: d.name, ingredients: d.ingredients, isBase: false }))
+    );
+  }
+  refreshAllDishes();
+
+  let weekPlan = null;       // [{day, chef, dish, checked:[bool,...]}]
+  let spinning = false;
+  let wheelRotation = 0;
+  let editingDishId = null;
+  let editingIsBase = false;
+
+  const wheelEl = document.getElementById("wheel");
+  const wheelLabels = wheelEl.querySelectorAll(".wheel-label");
+  const spinBtn = document.getElementById("spinBtn");
+  const resultLine = document.getElementById("resultLine");
+  const saveStatus = document.getElementById("saveStatus");
+  const weekGrid = document.getElementById("weekGrid");
+  const summarySection = document.getElementById("summarySection");
+  const summaryBody = document.getElementById("summaryBody");
+  const resetBtn = document.getElementById("resetBtn");
+
+  const addDishBtn = document.getElementById("addDishBtn");
+  const dishForm = document.getElementById("dishForm");
+  const dishNameInput = document.getElementById("dishNameInput");
+  const ingRows = document.getElementById("ingRows");
+  const addIngBtn = document.getElementById("addIngBtn");
+  const cancelDishBtn = document.getElementById("cancelDishBtn");
+  const saveDishBtn = document.getElementById("saveDishBtn");
+  const formMsg = document.getElementById("formMsg");
+  const dishListEl = document.getElementById("dishListEl");
+
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function shuffle(arr){
+    const a = arr.slice();
+    for(let i = a.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function todayIndexMonFri(){
+    const d = new Date().getDay(); // 0=domingo .. 6=sábado
+    return d >= 1 && d <= 5 ? d - 1 : -1;
+  }
+
+  /* ============================================================
+     4) RULETA DE CHEFS
+     ============================================================ */
+  function setWheelTransform(deg){
+    wheelEl.style.transform = `rotate(${deg}deg)`;
+    // Contra-rotamos cada etiqueta para que el texto quede siempre
+    // derecho, sin importar en qué ángulo termine la rueda.
+    wheelLabels.forEach(label => {
+      label.style.transform = `translateX(-50%) rotate(${-deg}deg)`;
+    });
+  }
+
+  function spinWheel(winner){
+    const requiredOffset = winner === "Gabi" ? 0 : 180;
+    const currentMod = wheelRotation % 360;
+    const delta = ((requiredOffset - currentMod) + 360) % 360;
+    wheelRotation = wheelRotation + (prefersReducedMotion ? 0 : 1440) + delta;
+    setWheelTransform(wheelRotation);
+  }
+
+  /* ============================================================
+     5) ARMAR LA SEMANA
+     ============================================================ */
+  function buildWeekPlan(){
+    const startChef = Math.random() < 0.5 ? "Gabi" : "Dami";
+    const otherChef = startChef === "Gabi" ? "Dami" : "Gabi";
+
+    const dishCount = Math.min(5, ALL_DISHES.length);
+    const chosenDishes = shuffle(ALL_DISHES).slice(0, dishCount);
+    // si hubiera menos de 5 platos en la lista, se completa repitiendo al azar
+    while(chosenDishes.length < 5){
+      chosenDishes.push(ALL_DISHES[Math.floor(Math.random() * ALL_DISHES.length)]);
+    }
+
+    return DAYS.map((day, i) => ({
+      day,
+      chef: i % 2 === 0 ? startChef : otherChef,
+      dish: chosenDishes[i],
+      checked: chosenDishes[i].ingredients.map(() => false)
+    }));
+  }
+
+  /* ============================================================
+     6) RENDER DE TARJETAS (con efecto "tragamonedas" en el plato)
+     ============================================================ */
+  function renderSkeleton(plan){
+    weekGrid.innerHTML = "";
+    summarySection.classList.add("hidden");
+    const todayIdx = todayIndexMonFri();
+
+    plan.forEach((entry, i) => {
+      const card = document.createElement("div");
+      card.className = "card" + (i === todayIdx ? " is-today" : "");
+      card.dataset.index = i;
+
+      const chefClass = entry.chef === "Gabi" ? "gabi" : "dami";
+
+      card.innerHTML = `
+        <div class="day-name">${entry.day}</div>
+        <span class="chef-tag ${chefClass}">${entry.chef}</span>
+        <p class="dish-name spinning" data-role="dish-name">–</p>
+        <button class="toggle-ing hidden" data-role="toggle">Ver ingredientes ▾</button>
+        <div class="ing-list hidden" data-role="ing-list"></div>
+      `;
+      weekGrid.appendChild(card);
+    });
+  }
+
+  function revealCard(i, entry){
+    const card = weekGrid.querySelector(`.card[data-index="${i}"]`);
+    if(!card) return;
+    const nameEl = card.querySelector('[data-role="dish-name"]');
+    const toggleBtn = card.querySelector('[data-role="toggle"]');
+    const ingList = card.querySelector('[data-role="ing-list"]');
+
+    nameEl.textContent = entry.dish.name;
+    nameEl.classList.remove("spinning");
+
+    const badge = document.createElement("span");
+    badge.className = "ratio-badge";
+    badge.dataset.role = "ratio-badge";
+    card.appendChild(badge);
+
+    ingList.innerHTML = entry.dish.ingredients.map((ing, idx) => `
+      <label>
+        <input type="checkbox" data-day="${i}" data-ing="${idx}" ${entry.checked[idx] ? "checked" : ""}>
+        ${escapeHtml(ing)}
+      </label>
+    `).join("");
+
+    toggleBtn.classList.remove("hidden");
+    toggleBtn.addEventListener("click", () => {
+      const isHidden = ingList.classList.contains("hidden");
+      ingList.classList.toggle("hidden");
+      toggleBtn.textContent = isHidden ? "Ocultar ingredientes ▴" : "Ver ingredientes ▾";
+    });
+
+    ingList.querySelectorAll("input[type=checkbox]").forEach(box => {
+      box.addEventListener("change", (e) => {
+        const dayIdx = Number(e.target.dataset.day);
+        const ingIdx = Number(e.target.dataset.ing);
+        weekPlan[dayIdx].checked[ingIdx] = e.target.checked;
+        updateRatio(dayIdx);
+        updateSummaryRow(dayIdx);
+        persistWeekPlan();
+      });
+    });
+
+    updateRatio(i);
+    requestAnimationFrame(() => card.classList.add("revealed"));
+  }
+
+  function updateRatio(i){
+    const entry = weekPlan[i];
+    const card = weekGrid.querySelector(`.card[data-index="${i}"]`);
+    const badge = card?.querySelector('[data-role="ratio-badge"]');
+    if(!badge) return;
+    const total = entry.checked.length;
+    const have = entry.checked.filter(Boolean).length;
+    badge.textContent = `${have}/${total}`;
+    badge.className = "ratio-badge " + (have === total ? "ratio-full" : have === 0 ? "ratio-low" : "ratio-mid");
+  }
+
+  /* Efecto de "girar" el nombre del plato antes de revelar */
+  function slotRevealDish(i, entry, delayMs, durationMs){
+    const card = weekGrid.querySelector(`.card[data-index="${i}"]`);
+    const nameEl = card.querySelector('[data-role="dish-name"]');
+
+    if(prefersReducedMotion){
+      setTimeout(() => revealCard(i, entry), delayMs);
+      return;
+    }
+
+    setTimeout(() => {
+      const start = Date.now();
+      const interval = setInterval(() => {
+        const random = ALL_DISHES[Math.floor(Math.random() * ALL_DISHES.length)];
+        nameEl.textContent = random.name;
+        if(Date.now() - start > durationMs){
+          clearInterval(interval);
+          revealCard(i, entry);
+        }
+      }, 70);
+    }, delayMs);
+  }
+
+  /* ============================================================
+     7) RESUMEN
+     ============================================================ */
+  function buildSummary(plan){
+    summaryBody.innerHTML = plan.map((entry, i) => `
+      <tr data-row="${i}">
+        <td>${entry.day}</td>
+        <td><span class="chef-tag ${entry.chef === "Gabi" ? "gabi" : "dami"}">${entry.chef}</span></td>
+        <td>${escapeHtml(entry.dish.name)}</td>
+        <td class="ratio-cell" data-role="summary-ratio">0/${entry.checked.length}</td>
+      </tr>
+    `).join("");
+    summarySection.classList.remove("hidden");
+  }
+
+  function updateSummaryRow(i){
+    const entry = weekPlan[i];
+    const row = summaryBody.querySelector(`tr[data-row="${i}"] [data-role="summary-ratio"]`);
+    if(!row) return;
+    const have = entry.checked.filter(Boolean).length;
+    row.textContent = `${have}/${entry.checked.length}`;
+  }
+
+  /* ============================================================
+     8) PERSISTENCIA DEL PLAN DE LA SEMANA
+     ============================================================ */
+  function persistWeekPlan(){
+    if(!weekPlan) return;
+    storageSet(STORAGE_KEYS.weekPlan, weekPlan);
+    refreshSaveStatus();
+  }
+
+  function refreshSaveStatus(){
+    saveStatus.textContent = storageAvailable
+      ? "Guardado en este navegador · se mantiene si volvés más tarde."
+      : "No se pudo guardar en este navegador — el progreso solo dura esta sesión.";
+  }
+
+  function snapWheelTo(chef){
+    const requiredOffset = chef === "Gabi" ? 0 : 180;
+    wheelEl.style.transition = "none";
+    wheelRotation = requiredOffset;
+    setWheelTransform(wheelRotation);
+    void wheelEl.offsetWidth; // forzar reflow
+    wheelEl.style.transition = "";
+  }
+
+  function restoreSavedWeek(){
+    const saved = storageGet(STORAGE_KEYS.weekPlan);
+    if(!saved || !Array.isArray(saved) || saved.length !== 5) return false;
+
+    weekPlan = saved;
+    renderSkeleton(weekPlan);
+    weekPlan.forEach((entry, i) => revealCard(i, entry));
+    buildSummary(weekPlan);
+    snapWheelTo(weekPlan[0].chef);
+    resultLine.textContent = `Plan guardado — arrancó cocinando: ${weekPlan[0].chef}`;
+    refreshSaveStatus();
+    return true;
+  }
+
+  /* ============================================================
+     9) FLUJO PRINCIPAL
+     ============================================================ */
+  function runSpin(){
+    if(spinning) return;
+    spinning = true;
+    spinBtn.disabled = true;
+    resultLine.textContent = "Girando…";
+
+    weekPlan = buildWeekPlan();
+    persistWeekPlan();
+    spinWheel(weekPlan[0].chef);
+    renderSkeleton(weekPlan);
+
+    const wheelDelay = prefersReducedMotion ? 0 : 1600;
+
+    setTimeout(() => {
+      resultLine.textContent = `Esta semana arranca cocinando: ${weekPlan[0].chef}`;
+      weekPlan.forEach((entry, i) => {
+        slotRevealDish(i, entry, i * 220, 700);
+      });
+      setTimeout(() => {
+        buildSummary(weekPlan);
+        spinning = false;
+        spinBtn.disabled = false;
+      }, weekPlan.length * 220 + 800);
+    }, wheelDelay);
+  }
+
+  spinBtn.addEventListener("click", runSpin);
+  resetBtn.addEventListener("click", () => {
+    runSpin();
+    window.scrollTo({ top: 0, behavior: prefersReducedMotion ? "auto" : "smooth" });
+  });
+
+  /* ============================================================
+     10) GESTOR DE PLATOS (agregar / editar / quitar / restablecer)
+     ============================================================ */
+  function createIngRow(value){
+    const row = document.createElement("div");
+    row.className = "ing-row";
+    const input = document.createElement("input");
+    input.type = "text";
+    input.placeholder = "Ingrediente";
+    input.value = value || "";
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.className = "remove-ing";
+    removeBtn.setAttribute("aria-label", "Quitar ingrediente");
+    removeBtn.textContent = "×";
+    removeBtn.addEventListener("click", () => {
+      if(ingRows.children.length > 1){
+        row.remove();
+      }else{
+        input.value = "";
+      }
+    });
+    row.appendChild(input);
+    row.appendChild(removeBtn);
+    return row;
+  }
+
+  function resetDishForm(){
+    editingDishId = null;
+    editingIsBase = false;
+    dishNameInput.value = "";
+    ingRows.innerHTML = "";
+    ingRows.appendChild(createIngRow(""));
+    ingRows.appendChild(createIngRow(""));
+    formMsg.textContent = "";
+    formMsg.className = "form-msg";
+    saveDishBtn.textContent = "Guardar plato";
+  }
+
+  function openDishForm(editDish){
+    resetDishForm();
+    if(editDish){
+      editingDishId = editDish.id;
+      editingIsBase = editDish.isBase;
+      dishNameInput.value = editDish.name;
+      ingRows.innerHTML = "";
+      editDish.ingredients.forEach(ing => ingRows.appendChild(createIngRow(ing)));
+      if(ingRows.children.length === 0) ingRows.appendChild(createIngRow(""));
+      saveDishBtn.textContent = "Guardar cambios";
+    }
+    dishForm.classList.remove("hidden");
+    addDishBtn.setAttribute("aria-expanded", "true");
+    dishNameInput.focus();
+  }
+
+  function closeDishForm(){
+    dishForm.classList.add("hidden");
+    addDishBtn.setAttribute("aria-expanded", "false");
+  }
+
+  addDishBtn.addEventListener("click", () => {
+    if(dishForm.classList.contains("hidden")){
+      openDishForm();
+    }else{
+      closeDishForm();
+    }
+  });
+  cancelDishBtn.addEventListener("click", closeDishForm);
+  addIngBtn.addEventListener("click", () => {
+    const row = createIngRow("");
+    ingRows.appendChild(row);
+    row.querySelector("input").focus();
+  });
+
+  function renderDishList(){
+    if(ALL_DISHES.length === 0){
+      dishListEl.innerHTML = `<li style="opacity:.55; border-bottom:none;">No hay platos cargados.</li>`;
+      return;
+    }
+    dishListEl.innerHTML = ALL_DISHES.map(d => {
+      const countLabel = `<span style="opacity:.55">(${d.ingredients.length} ingredientes)</span>`;
+      const editedTag = d.isBase && d.edited ? ` <span style="opacity:.5">· editado</span>` : "";
+      const actions = [`<button type="button" class="row-action edit-dish" data-id="${d.id}">editar</button>`];
+      if(d.isBase && d.edited){
+        actions.push(`<button type="button" class="row-action reset-dish" data-id="${d.id}">restablecer</button>`);
+      }
+      if(!d.isBase){
+        actions.push(`<button type="button" class="row-action remove-dish" data-id="${d.id}">quitar</button>`);
+      }
+      return `<li>
+        <span>${escapeHtml(d.name)} ${countLabel}${editedTag}</span>
+        <span class="row-actions">${actions.join("")}</span>
+      </li>`;
+    }).join("");
+
+    dishListEl.querySelectorAll(".edit-dish").forEach(btn => {
+      btn.addEventListener("click", () => startEditDish(btn.dataset.id));
+    });
+    dishListEl.querySelectorAll(".reset-dish").forEach(btn => {
+      btn.addEventListener("click", () => resetBaseDish(btn.dataset.id));
+    });
+    dishListEl.querySelectorAll(".remove-dish").forEach(btn => {
+      btn.addEventListener("click", () => removeCustomDish(btn.dataset.id));
+    });
+  }
+
+  function startEditDish(id){
+    const dish = ALL_DISHES.find(d => d.id === id);
+    if(!dish) return;
+    openDishForm(dish);
+    if(typeof dishForm.scrollIntoView === "function"){
+      dishForm.scrollIntoView({ behavior: prefersReducedMotion ? "auto" : "smooth", block: "center" });
+    }
+  }
+
+  function resetBaseDish(id){
+    delete dishOverrides[id];
+    storageSet(STORAGE_KEYS.dishOverrides, dishOverrides);
+    refreshAllDishes();
+    renderDishList();
+  }
+
+  function removeCustomDish(id){
+    customDishes = customDishes.filter(d => d.id !== id);
+    storageSet(STORAGE_KEYS.customDishes, customDishes);
+    refreshAllDishes();
+    renderDishList();
+  }
+
+  dishForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const name = dishNameInput.value.trim();
+    const ingredients = Array.from(ingRows.querySelectorAll("input"))
+      .map(input => input.value.trim())
+      .filter(Boolean);
+
+    if(!name){
+      formMsg.textContent = "Falta el nombre del plato.";
+      formMsg.className = "form-msg error";
+      dishNameInput.focus();
+      return;
+    }
+    if(ingredients.length === 0){
+      formMsg.textContent = "Agregá al menos un ingrediente.";
+      formMsg.className = "form-msg error";
+      return;
+    }
+
+    if(editingDishId){
+      if(editingIsBase){
+        dishOverrides[editingDishId] = { name, ingredients };
+        storageSet(STORAGE_KEYS.dishOverrides, dishOverrides);
+      }else{
+        const idx = customDishes.findIndex(d => d.id === editingDishId);
+        if(idx > -1){
+          customDishes[idx] = { id: editingDishId, name, ingredients };
+          storageSet(STORAGE_KEYS.customDishes, customDishes);
+        }
+      }
+      refreshAllDishes();
+      renderDishList();
+      resetDishForm();
+      formMsg.textContent = `"${name}" se actualizó.`;
+      formMsg.className = "form-msg ok";
+    }else{
+      const newDish = { id: generateId("custom"), name, ingredients };
+      customDishes.push(newDish);
+      storageSet(STORAGE_KEYS.customDishes, customDishes);
+      refreshAllDishes();
+      renderDishList();
+      resetDishForm();
+      formMsg.textContent = `"${name}" se agregó a la ruleta.`;
+      formMsg.className = "form-msg ok";
+    }
+  });
+
+  /* ============================================================
+     11) ARRANQUE
+     ============================================================ */
+  renderDishList();
+  restoreSavedWeek();
+</script>
+</body>
+</html>
