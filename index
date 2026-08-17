@@ -1,0 +1,1683 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>La Ruleta del Almuerzo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bevan&family=Work+Sans:ital,wght@0,400;0,500;0,600;0,700;1,500&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+<!-- Firebase SDK (compat) -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+<style>
+/* ============================================================
+   VARIABLES & RESET
+============================================================ */
+:root{
+  --verde-esmalte:#213524; --verde-2:#2c4430;
+  --crema:#FBF3E3; --crema-soft:#F1E6CC;
+  --terracota:#C1502E; --terracota-d:#9c3e22;
+  --mostaza:#E3A23C; --tinta:#1B2118;
+  --verde-ok:#5C8A52; --rojo-falta:#B8543F;
+  --radius:14px;
+  --display:"Bevan","Georgia",serif;
+  --body:"Work Sans",system-ui,sans-serif;
+  --mono:"JetBrains Mono","Courier New",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--verde-esmalte);
+  background-image:radial-gradient(circle at 20% 0%,rgba(255,255,255,.04),transparent 40%),
+    radial-gradient(circle at 100% 100%,rgba(255,255,255,.03),transparent 45%);
+  color:var(--crema);font-family:var(--body);line-height:1.5;min-height:100vh}
+:focus-visible{outline:3px solid var(--mostaza);outline-offset:3px}
+.hidden{display:none!important}
+
+/* ============================================================
+   AUTH SCREEN
+============================================================ */
+#authScreen{
+  min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.auth-card{
+  background:var(--verde-2);border:1px solid rgba(251,243,227,.12);
+  border-radius:var(--radius);padding:36px 32px 32px;width:100%;max-width:400px;
+  box-shadow:0 20px 40px rgba(0,0,0,.35)}
+.auth-logo{font-size:2.4rem;text-align:center;margin-bottom:12px}
+.auth-title{
+  font-family:var(--display);font-size:1.5rem;font-weight:400;text-align:center;
+  margin:0 0 24px;color:var(--crema)}
+.auth-tabs{display:flex;gap:0;margin-bottom:22px;border-radius:8px;overflow:hidden;
+  border:1px solid rgba(251,243,227,.2)}
+.auth-tab{
+  flex:1;padding:10px;background:transparent;border:none;color:rgba(251,243,227,.6);
+  font-family:var(--mono);font-size:.78rem;letter-spacing:.05em;text-transform:uppercase;
+  cursor:pointer;transition:background .2s,color .2s}
+.auth-tab.active{background:var(--terracota);color:#fff}
+.field-group{margin-bottom:14px}
+.field-group label{
+  display:block;font-family:var(--mono);font-size:.72rem;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--mostaza);margin-bottom:5px}
+.field-group input, .modal-card input[type=text], .modal-card input[type=password]{
+  width:100%;padding:10px 12px;background:rgba(251,243,227,.08);
+  border:1px solid rgba(251,243,227,.2);border-radius:8px;
+  color:var(--crema);font-family:var(--body);font-size:.95rem}
+.field-group input::placeholder{color:rgba(251,243,227,.35)}
+.field-group input:focus{border-color:var(--mostaza);outline:none}
+.auth-error{
+  font-family:var(--mono);font-size:.78rem;color:var(--rojo-falta);
+  margin:0 0 10px;min-height:1.2em}
+.auth-submit{
+  width:100%;padding:13px;background:var(--terracota);border:none;border-radius:999px;
+  color:#fff;font-family:var(--display);font-size:1rem;cursor:pointer;
+  box-shadow:0 4px 0 var(--terracota-d);transition:transform .1s,box-shadow .1s;margin-top:4px}
+.auth-submit:hover{transform:translateY(-2px)}
+.auth-submit:active{transform:translateY(3px);box-shadow:0 1px 0 var(--terracota-d)}
+.auth-submit:disabled{opacity:.6;cursor:not-allowed;transform:none}
+
+/* ============================================================
+   ONBOARDING WIZARD
+============================================================ */
+#onboarding{
+  position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);
+  z-index:100;display:flex;align-items:center;justify-content:center;padding:20px}
+.wizard-card{
+  background:var(--verde-2);border:1px solid rgba(251,243,227,.12);
+  border-radius:var(--radius);padding:36px 32px 28px;width:100%;max-width:460px;
+  box-shadow:0 20px 40px rgba(0,0,0,.4);max-height:90vh;overflow-y:auto}
+.wizard-icon{font-size:2.6rem;text-align:center;margin-bottom:14px}
+.wizard-card h2{
+  font-family:var(--display);font-weight:400;font-size:1.6rem;
+  text-align:center;margin:0 0 12px}
+.wizard-card p{color:rgba(251,243,227,.82);margin:0 0 12px;font-size:.95rem}
+.wizard-nav{display:flex;justify-content:space-between;margin-top:20px;gap:12px}
+.wizard-next,.wizard-finish{
+  font-family:var(--display);font-size:.95rem;padding:12px 24px;
+  background:var(--terracota);border:none;border-radius:999px;color:#fff;cursor:pointer;
+  box-shadow:0 4px 0 var(--terracota-d);flex:1}
+.wizard-next:hover,.wizard-finish:hover{transform:translateY(-1px)}
+.wizard-back{
+  font-family:var(--mono);font-size:.8rem;padding:12px 18px;
+  background:rgba(251,243,227,.08);border:1px solid rgba(251,243,227,.2);
+  border-radius:999px;color:var(--crema);cursor:pointer}
+.wizard-step.hidden{display:none}
+.wizard-dots{display:flex;justify-content:center;gap:8px;margin-top:20px}
+.wizard-dot{
+  width:8px;height:8px;border-radius:50%;background:rgba(251,243,227,.25);
+  transition:background .3s}
+.wizard-dot.active{background:var(--mostaza)}
+.wizard-error{
+  font-family:var(--mono);font-size:.78rem;color:var(--rojo-falta);margin:8px 0 0}
+/* chef setup rows in wizard */
+.chef-setup-row{
+  display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.chef-setup-row input{
+  flex:1;padding:9px 12px;background:rgba(251,243,227,.08);
+  border:1px solid rgba(251,243,227,.2);border-radius:8px;
+  color:var(--crema);font-size:.95rem}
+.chef-setup-row input::placeholder{color:rgba(251,243,227,.35)}
+.chef-color-dot{
+  width:28px;height:28px;border-radius:50%;flex-shrink:0;cursor:pointer;
+  border:2px solid transparent;transition:border-color .2s}
+.chef-color-dot:hover{border-color:var(--crema)}
+.chef-remove-btn{
+  background:none;border:none;color:rgba(251,243,227,.4);cursor:pointer;
+  font-size:1.1rem;padding:0 4px;line-height:1}
+.chef-remove-btn:hover{color:var(--rojo-falta)}
+.add-chef-btn{
+  font-family:var(--mono);font-size:.78rem;background:rgba(251,243,227,.08);
+  border:1px dashed rgba(251,243,227,.3);border-radius:8px;color:var(--crema);
+  padding:8px 14px;cursor:pointer;width:100%;margin-top:6px}
+.add-chef-btn:hover{background:rgba(251,243,227,.14)}
+
+/* ============================================================
+   APP HEADER
+============================================================ */
+.app-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 20px;background:rgba(0,0,0,.2);
+  border-bottom:1px solid rgba(251,243,227,.08);position:sticky;top:0;z-index:10}
+.header-left{font-family:var(--mono);font-size:.72rem;letter-spacing:.15em;
+  text-transform:uppercase;color:var(--mostaza)}
+.header-center{font-family:var(--display);font-size:1.1rem;font-weight:400}
+.header-right{display:flex;gap:8px}
+.icon-btn{
+  width:34px;height:34px;border-radius:50%;background:rgba(251,243,227,.1);
+  border:1px solid rgba(251,243,227,.15);color:var(--crema);cursor:pointer;
+  font-size:.9rem;display:flex;align-items:center;justify-content:center}
+.icon-btn:hover{background:rgba(251,243,227,.2)}
+
+/* ============================================================
+   MAIN LAYOUT
+============================================================ */
+.wrap{max-width:980px;margin:0 auto;padding:36px 20px 60px}
+.eyebrow{
+  font-family:var(--mono);letter-spacing:.18em;text-transform:uppercase;
+  font-size:.72rem;color:var(--mostaza);margin:0 0 10px;text-align:center}
+h1{
+  font-family:var(--display);font-weight:400;
+  font-size:clamp(2rem,6vw,3.2rem);margin:0 0 10px;
+  color:var(--crema);text-align:center;text-shadow:0 2px 0 rgba(0,0,0,.25)}
+.subtitle{max-width:520px;margin:0 auto 8px;
+  color:rgba(251,243,227,.78);font-size:1rem;text-align:center}
+.chefs-legend{display:flex;justify-content:center;flex-wrap:wrap;gap:14px;margin:14px 0 4px}
+.legend-dot{
+  display:inline-flex;align-items:center;gap:7px;
+  font-family:var(--mono);font-size:.8rem}
+.dot{width:12px;height:12px;border-radius:50%}
+
+/* ============================================================
+   WHEEL
+============================================================ */
+.wheel-section{text-align:center;padding-bottom:8px}
+.wheel-stage{display:flex;flex-direction:column;align-items:center;margin:24px 0 8px}
+.wheel-frame{position:relative;width:220px;height:220px;margin-bottom:22px}
+.pointer{
+  position:absolute;top:-10px;left:50%;transform:translateX(-50%);
+  width:0;height:0;border-left:14px solid transparent;border-right:14px solid transparent;
+  border-top:22px solid var(--mostaza);filter:drop-shadow(0 2px 2px rgba(0,0,0,.35));z-index:3}
+.wheel{
+  width:100%;height:100%;border-radius:50%;
+  border:6px solid var(--crema-soft);position:relative;z-index:1;
+  box-shadow:0 8px 24px rgba(0,0,0,.35),inset 0 0 0 2px rgba(0,0,0,.15);
+  /* background set dynamically */
+}
+.wheel-labels{
+  position:absolute;top:0;left:0;width:100%;height:100%;
+  border-radius:50%;pointer-events:none;z-index:2}
+.wheel-label{
+  position:absolute;font-family:var(--display);letter-spacing:.04em;
+  font-size:.9rem;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.5);
+  white-space:nowrap;/* left, top, transform set by JS */}
+.hub{
+  position:absolute;top:50%;left:50%;width:46px;height:46px;
+  background:var(--crema);border-radius:50%;transform:translate(-50%,-50%);
+  display:flex;align-items:center;justify-content:center;font-size:1.3rem;
+  box-shadow:0 2px 6px rgba(0,0,0,.3);z-index:4}
+.spin-btn{
+  font-family:var(--display);font-size:1.05rem;letter-spacing:.03em;
+  color:var(--crema);background:var(--terracota);border:none;
+  padding:14px 30px;border-radius:999px;cursor:pointer;
+  box-shadow:0 6px 0 var(--terracota-d);transition:transform .12s,box-shadow .12s}
+.spin-btn:hover{transform:translateY(-2px)}
+.spin-btn:active{transform:translateY(3px);box-shadow:0 2px 0 var(--terracota-d)}
+.spin-btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
+.result-line{
+  margin-top:14px;font-family:var(--mono);font-size:.9rem;
+  min-height:1.4em;color:var(--mostaza);text-align:center}
+.save-status{
+  text-align:center;font-family:var(--mono);font-size:.68rem;
+  color:rgba(251,243,227,.38);margin-top:4px}
+
+/* ============================================================
+   WEEK CARDS
+============================================================ */
+.week{margin-top:36px;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px}
+.card{
+  background:var(--crema);color:var(--tinta);border-radius:var(--radius);
+  border-top:6px solid var(--terracota);padding:16px 16px 14px;
+  box-shadow:0 10px 18px rgba(0,0,0,.25);
+  opacity:0;transform:translateY(10px);
+  transition:opacity .4s ease,transform .4s ease,border-color .3s ease;position:relative}
+.card.revealed{opacity:1;transform:translateY(0)}
+.card.is-today{border-top-color:var(--mostaza)}
+.card.is-today::after{
+  content:"HOY";position:absolute;top:10px;right:12px;
+  font-family:var(--mono);font-size:.6rem;letter-spacing:.08em;
+  color:var(--terracota-d)}
+.day-name{
+  font-family:var(--display);font-size:1.05rem;text-transform:uppercase;
+  letter-spacing:.03em;margin:0 0 8px}
+.chef-tag{
+  display:inline-block;font-family:var(--mono);font-size:.7rem;
+  letter-spacing:.06em;text-transform:uppercase;color:#fff;
+  padding:3px 10px;border-radius:999px;margin-bottom:10px;
+  /* background color set inline via JS */}
+.dish-name{font-weight:600;font-size:.98rem;margin:0 0 12px;min-height:2.6em}
+.dish-name.spinning{color:rgba(27,33,24,.45);font-style:italic}
+.toggle-ing{
+  font-family:var(--mono);font-size:.74rem;background:none;border:none;
+  color:var(--terracota-d);cursor:pointer;padding:0;text-decoration:underline}
+.ratio-badge{
+  position:absolute;top:10px;right:12px;font-family:var(--mono);
+  font-size:.68rem;padding:2px 7px;border-radius:999px;color:#fff}
+.ratio-low{background:var(--rojo-falta)}
+.ratio-mid{background:var(--mostaza);color:var(--tinta)}
+.ratio-full{background:var(--verde-ok)}
+.ing-list{margin-top:10px;padding-top:10px;border-top:1px dashed rgba(27,33,24,.25)}
+.ing-list label{
+  display:flex;align-items:flex-start;gap:8px;font-size:.86rem;
+  margin-bottom:7px;cursor:pointer}
+.ing-list input{
+  margin-top:3px;width:16px;height:16px;accent-color:var(--verde-ok);flex-shrink:0}
+
+/* ============================================================
+   SUMMARY
+============================================================ */
+.summary{margin-top:44px}
+.summary h2{
+  font-family:var(--display);font-size:1.5rem;text-align:center;
+  margin-bottom:16px;color:var(--crema)}
+table.menu-board{
+  width:100%;border-collapse:collapse;background:var(--crema);color:var(--tinta);
+  border-radius:var(--radius);overflow:hidden;box-shadow:0 10px 20px rgba(0,0,0,.3);
+  font-size:.92rem}
+table.menu-board thead tr{background:var(--terracota);color:#fff}
+table.menu-board th,table.menu-board td{padding:10px 14px;text-align:left}
+table.menu-board th{font-family:var(--mono);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase}
+table.menu-board tbody tr:nth-child(even){background:var(--crema-soft)}
+td.ratio-cell{font-family:var(--mono);font-size:.8rem}
+.reset-row{text-align:center;margin-top:22px}
+.reset-btn{
+  font-family:var(--mono);font-size:.8rem;background:none;
+  border:1px solid rgba(251,243,227,.4);color:var(--crema);
+  padding:9px 18px;border-radius:999px;cursor:pointer}
+.reset-btn:hover{border-color:var(--mostaza);color:var(--mostaza)}
+
+/* ============================================================
+   DISH MANAGER
+============================================================ */
+.dish-manager{
+  margin-top:44px;background:rgba(251,243,227,.05);
+  border:1px dashed rgba(251,243,227,.2);border-radius:var(--radius);padding:22px}
+.dish-manager-header{
+  display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;
+  margin-bottom:16px}
+.dish-manager h2{
+  font-family:var(--display);font-size:1.3rem;margin:0 0 4px;color:var(--crema)}
+.hint{font-size:.84rem;color:rgba(251,243,227,.6);margin:0}
+.add-dish-btn-main{
+  font-family:var(--mono);font-size:.78rem;background:var(--mostaza);
+  color:var(--tinta);border:none;padding:9px 16px;border-radius:999px;
+  cursor:pointer;white-space:nowrap;font-weight:600}
+.add-dish-btn-main:hover{background:#eeb158}
+.custom-dish-list{list-style:none;padding:0;margin:0;max-height:400px;overflow-y:auto}
+.custom-dish-list li{
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+  font-size:.86rem;padding:8px 0;border-bottom:1px solid rgba(251,243,227,.1)}
+.custom-dish-list li:last-child{border-bottom:none}
+.custom-dish-list li>span:first-child{flex:1;min-width:0}
+.row-actions{display:flex;gap:10px;flex-shrink:0}
+.row-action{
+  background:none;border:none;color:rgba(251,243,227,.5);cursor:pointer;
+  font-size:.74rem;text-decoration:underline;font-family:var(--mono);padding:0}
+.row-action.edit-dish:hover{color:var(--mostaza)}
+.row-action.remove-dish:hover{color:var(--rojo-falta)}
+.dish-loading{
+  text-align:center;padding:24px;font-family:var(--mono);font-size:.82rem;
+  color:rgba(251,243,227,.45)}
+
+/* ============================================================
+   SETTINGS PANEL
+============================================================ */
+.panel-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:50;
+  backdrop-filter:blur(2px)}
+.settings-panel{
+  position:fixed;top:0;right:0;width:320px;max-width:100vw;height:100%;
+  background:var(--verde-2);border-left:1px solid rgba(251,243,227,.12);
+  z-index:51;overflow-y:auto;display:flex;flex-direction:column}
+.panel-header{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:20px 20px 0}
+.panel-header h3{font-family:var(--display);font-weight:400;font-size:1.3rem;margin:0}
+.panel-close{
+  background:none;border:none;color:rgba(251,243,227,.6);font-size:1.5rem;
+  cursor:pointer;padding:0;line-height:1}
+.panel-close:hover{color:var(--crema)}
+.panel-body{padding:20px;flex:1}
+.panel-section{margin-bottom:28px}
+.panel-section h4{
+  font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--mostaza);margin:0 0 12px;padding-bottom:8px;
+  border-bottom:1px solid rgba(251,243,227,.1)}
+.panel-chef-row{
+  display:flex;align-items:center;gap:10px;padding:8px 0;
+  border-bottom:1px solid rgba(251,243,227,.08)}
+.panel-chef-color{width:18px;height:18px;border-radius:50%;flex-shrink:0}
+.panel-chef-name{flex:1;font-size:.92rem}
+.panel-chef-actions{display:flex;gap:8px}
+.panel-icon-btn{
+  background:none;border:none;color:rgba(251,243,227,.45);cursor:pointer;
+  font-size:.78rem;text-decoration:underline;font-family:var(--mono)}
+.panel-icon-btn:hover{color:var(--mostaza)}
+.panel-icon-btn.danger:hover{color:var(--rojo-falta)}
+.add-chef-settings{
+  font-family:var(--mono);font-size:.76rem;background:rgba(251,243,227,.07);
+  border:1px dashed rgba(251,243,227,.25);border-radius:8px;color:var(--crema);
+  padding:8px 12px;cursor:pointer;width:100%;margin-top:10px}
+.add-chef-settings:hover{background:rgba(251,243,227,.13)}
+.panel-username{
+  font-family:var(--mono);font-size:.82rem;color:rgba(251,243,227,.6);margin:0 0 12px}
+.logout-btn{
+  font-family:var(--mono);font-size:.78rem;background:rgba(184,84,63,.2);
+  border:1px solid rgba(184,84,63,.4);color:var(--crema);
+  padding:9px 16px;border-radius:999px;cursor:pointer;width:100%}
+.logout-btn:hover{background:rgba(184,84,63,.35)}
+.panel-version{
+  padding:16px 20px;text-align:center;font-family:var(--mono);font-size:.68rem;
+  color:rgba(251,243,227,.3)}
+
+/* ============================================================
+   MODALS (Dish / Chef)
+============================================================ */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:60;
+  backdrop-filter:blur(2px)}
+.modal{
+  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+  z-index:61;width:100%;max-width:440px;padding:16px}
+.modal-card{
+  background:var(--crema);color:var(--tinta);border-radius:var(--radius);
+  padding:24px;max-height:85vh;overflow-y:auto;
+  box-shadow:0 20px 40px rgba(0,0,0,.4)}
+.modal-header{
+  display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.modal-header h3{font-family:var(--display);font-weight:400;font-size:1.2rem;margin:0}
+.modal-close{
+  background:none;border:none;color:rgba(27,33,24,.5);font-size:1.4rem;
+  cursor:pointer;line-height:1}
+.modal-close:hover{color:var(--rojo-falta)}
+.modal-card .field-label{
+  display:block;font-family:var(--mono);font-size:.7rem;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--terracota-d);margin-bottom:5px;margin-top:14px}
+.modal-card input[type=text]{
+  width:100%;padding:9px 11px;border:1px solid rgba(27,33,24,.2);border-radius:8px;
+  font-family:var(--body);font-size:.95rem;margin-bottom:6px;background:#fff;color:var(--tinta)}
+.ing-rows{margin-bottom:6px}
+.ing-row{display:flex;gap:8px;margin-bottom:8px}
+.ing-row input{flex:1}
+.remove-ing{
+  background:none;border:none;color:var(--rojo-falta);font-size:1.1rem;
+  cursor:pointer;width:28px;padding:0}
+.add-ing-btn{
+  font-family:var(--mono);font-size:.74rem;background:none;
+  border:1px dashed rgba(27,33,24,.3);color:var(--tinta);
+  padding:6px 12px;border-radius:8px;cursor:pointer;margin-bottom:16px}
+.modal-actions{display:flex;gap:10px}
+.save-dish-btn{
+  font-family:var(--display);font-size:.92rem;background:var(--terracota);
+  color:#fff;border:none;padding:10px 20px;border-radius:999px;cursor:pointer;flex:1}
+.save-dish-btn:hover{background:#c8552e}
+.cancel-btn{
+  font-family:var(--mono);font-size:.8rem;background:none;
+  border:1px solid rgba(27,33,24,.25);color:var(--tinta);
+  padding:10px 16px;border-radius:999px;cursor:pointer}
+.form-msg{font-family:var(--mono);font-size:.76rem;margin-top:10px;min-height:1.2em}
+.form-msg.error{color:var(--rojo-falta)}
+.form-msg.ok{color:var(--verde-ok)}
+/* Chef color picker */
+.color-picker{display:flex;flex-wrap:wrap;gap:10px;padding:8px 0 14px}
+.color-swatch{
+  width:32px;height:32px;border-radius:50%;cursor:pointer;
+  border:3px solid transparent;transition:border-color .15s,transform .15s}
+.color-swatch.selected{border-color:var(--tinta);transform:scale(1.15)}
+.color-swatch:hover{transform:scale(1.1)}
+
+/* ============================================================
+   TUTORIAL MODAL
+============================================================ */
+.tutorial-card{background:var(--verde-2);color:var(--crema);border-radius:var(--radius)}
+.tutorial-card .modal-header h3{color:var(--crema)}
+.tutorial-card .modal-close{color:rgba(251,243,227,.5)}
+.tutorial-list{list-style:none;padding:0;margin:0 0 22px}
+.tutorial-list li{
+  display:flex;gap:14px;align-items:flex-start;padding:12px 0;
+  border-bottom:1px solid rgba(251,243,227,.1)}
+.tutorial-list li:last-child{border-bottom:none}
+.t-icon{font-size:1.5rem;flex-shrink:0;width:28px;text-align:center}
+.tutorial-list strong{display:block;margin-bottom:3px;font-size:.95rem}
+.tutorial-list span:not(.t-icon){font-size:.88rem;color:rgba(251,243,227,.75)}
+
+/* ============================================================
+   TOAST
+============================================================ */
+.toast-container{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  z-index:200;display:flex;flex-direction:column;gap:8px;align-items:center;
+  pointer-events:none}
+.toast{
+  background:var(--tinta);color:var(--crema);padding:10px 20px;
+  border-radius:999px;font-family:var(--mono);font-size:.8rem;
+  opacity:0;transform:translateY(10px);transition:opacity .3s,transform .3s;
+  border-left:4px solid var(--mostaza);white-space:nowrap;
+  box-shadow:0 4px 12px rgba(0,0,0,.35)}
+.toast.visible{opacity:1;transform:translateY(0)}
+.toast.err{border-left-color:var(--rojo-falta)}
+.toast.ok{border-left-color:var(--verde-ok)}
+
+/* ============================================================
+   LOADING OVERLAY
+============================================================ */
+#loadingOverlay{
+  position:fixed;inset:0;background:var(--verde-esmalte);z-index:300;
+  display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px}
+.loading-logo{font-size:2.5rem}
+.loading-text{font-family:var(--mono);font-size:.82rem;
+  color:rgba(251,243,227,.55);letter-spacing:.1em}
+
+/* ============================================================
+   FOOTER
+============================================================ */
+footer{
+  text-align:center;margin-top:50px;font-family:var(--mono);font-size:.7rem;
+  color:rgba(251,243,227,.35)}
+
+/* ============================================================
+   MEDIA QUERIES
+============================================================ */
+@media(max-width:480px){
+  .auth-card,.wizard-card{padding:24px 18px}
+  .wrap{padding:24px 14px 60px}
+  .week{grid-template-columns:1fr 1fr}
+  .settings-panel{width:100%}
+  .modal{padding:10px}
+}
+@media(prefers-reduced-motion:reduce){
+  .wheel,.wheel-labels,.wheel-label,.card{transition:none!important}
+}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loadingOverlay">
+  <div class="loading-logo">🍽️</div>
+  <div class="loading-text">Cargando...</div>
+</div>
+
+<!-- AUTH SCREEN -->
+<div id="authScreen" class="hidden">
+  <div class="auth-card">
+    <div class="auth-logo">🍽️</div>
+    <h1 class="auth-title">La Ruleta del Almuerzo</h1>
+    <div class="auth-tabs">
+      <button class="auth-tab active" data-tab="login">Iniciar sesión</button>
+      <button class="auth-tab" data-tab="register">Crear cuenta</button>
+    </div>
+    <form id="authForm">
+      <div class="field-group">
+        <label for="authUsername">Usuario</label>
+        <input type="text" id="authUsername" placeholder="minombre" autocomplete="username" required>
+      </div>
+      <div class="field-group">
+        <label for="authPassword">Contraseña</label>
+        <input type="password" id="authPassword" placeholder="••••••" autocomplete="current-password" required>
+      </div>
+      <p class="auth-error" id="authError"></p>
+      <button type="submit" class="auth-submit" id="authSubmit">Iniciar sesión</button>
+    </form>
+  </div>
+</div>
+
+<!-- ONBOARDING WIZARD -->
+<div id="onboarding" class="hidden">
+  <div class="wizard-card">
+    <!-- Step 1 -->
+    <div class="wizard-step" data-step="1">
+      <div class="wizard-icon">🎲</div>
+      <h2>¡Bienvenidos!</h2>
+      <p>Esta app sortea quién cocina cada día (lunes a viernes), qué plato prepara y te da un checklist de ingredientes para organizarte.</p>
+      <p>Los cambios se sincronizan en tiempo real entre todos los dispositivos que usen esta cuenta.</p>
+      <div style="text-align:center;margin-top:20px">
+        <button class="wizard-next" data-next="2" style="max-width:200px">Empezar →</button>
+      </div>
+    </div>
+    <!-- Step 2 -->
+    <div class="wizard-step hidden" data-step="2">
+      <h2>¿Quiénes cocinan?</h2>
+      <p>Agregá los nombres de las personas que van a participar en la ruleta (podés ser vos solo, una pareja, o un grupo).</p>
+      <div id="chefSetupList"></div>
+      <button class="add-chef-btn" id="addWizardChefBtn">+ Agregar cocinero</button>
+      <p class="wizard-error hidden" id="chefWizardError"></p>
+      <div class="wizard-nav">
+        <button class="wizard-back" data-back="1">← Atrás</button>
+        <button class="wizard-next" id="chefsDoneBtn">Siguiente →</button>
+      </div>
+    </div>
+    <!-- Step 3 -->
+    <div class="wizard-step hidden" data-step="3">
+      <div class="wizard-icon">✅</div>
+      <h2>¡Todo listo!</h2>
+      <p>Cargamos 19 platos base para que tengas con qué arrancar. Podés editarlos, agregar los tuyos o eliminar los que no quieran.</p>
+      <p>Girar la ruleta sortea al azar quién cocina cada día y qué plato le toca.</p>
+      <div style="text-align:center;margin-top:24px">
+        <button class="wizard-finish" id="finishOnboardingBtn">¡Ir a la ruleta! →</button>
+      </div>
+    </div>
+    <div class="wizard-dots" id="wizardDots"></div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="appShell" class="hidden">
+  <header class="app-header">
+    <div class="header-left">La Ruleta</div>
+    <div class="header-center">del Almuerzo</div>
+    <div class="header-right">
+      <button class="icon-btn" id="tutorialBtn" title="¿Cómo funciona?">?</button>
+      <button class="icon-btn" id="settingsBtn" title="Ajustes">⚙</button>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <section class="wheel-section">
+      <p class="eyebrow">Lunes a viernes · Turnos rotativos</p>
+      <h1>La Ruleta del Almuerzo</h1>
+      <p class="subtitle">Girá para sortear quién cocina y qué plato toca cada día.</p>
+      <div id="chefLegend" class="chefs-legend"></div>
+      <div class="wheel-stage">
+        <div class="wheel-frame">
+          <div class="pointer"></div>
+          <div id="wheel" class="wheel"></div>
+          <div id="wheelLabels" class="wheel-labels"></div>
+          <div class="hub">🍽️</div>
+        </div>
+        <button class="spin-btn" id="spinBtn">Girar la ruleta</button>
+        <p class="result-line" id="resultLine">Todavía no se giró esta semana.</p>
+        <p class="save-status" id="saveStatus"></p>
+      </div>
+    </section>
+
+    <div class="week" id="weekGrid"></div>
+
+    <section class="summary hidden" id="summarySection">
+      <h2>Resumen de la semana</h2>
+      <table class="menu-board">
+        <thead><tr><th>Día</th><th>Chef</th><th>Plato</th><th>Ingredientes</th></tr></thead>
+        <tbody id="summaryBody"></tbody>
+      </table>
+      <div class="reset-row">
+        <button class="reset-btn" id="resetBtn">↻ Nueva semana / volver a girar</button>
+      </div>
+    </section>
+
+    <section class="dish-manager">
+      <div class="dish-manager-header">
+        <div>
+          <h2>Platos de la ruleta</h2>
+          <p class="hint" id="dishCountHint">Cargando platos...</p>
+        </div>
+        <button class="add-dish-btn-main" id="openAddDishBtn">+ Agregar plato</button>
+      </div>
+      <ul id="dishListEl" class="custom-dish-list">
+        <li class="dish-loading">Cargando platos...</li>
+      </ul>
+    </section>
+  </div>
+
+  <footer>
+    Sincronización en tiempo real · Abrí la app desde cualquier dispositivo con esta cuenta.
+  </footer>
+</div>
+
+<!-- SETTINGS PANEL -->
+<div class="panel-overlay hidden" id="panelOverlay"></div>
+<div class="settings-panel hidden" id="settingsPanel">
+  <div class="panel-header">
+    <h3>Ajustes</h3>
+    <button class="panel-close" id="closeSettingsBtn">×</button>
+  </div>
+  <div class="panel-body">
+    <section class="panel-section">
+      <h4>Cocineros</h4>
+      <div id="chefListSettings"></div>
+      <button class="add-chef-settings" id="addChefSettingsBtn">+ Agregar cocinero</button>
+    </section>
+    <section class="panel-section">
+      <h4>Cuenta</h4>
+      <p class="panel-username" id="panelUsername"></p>
+      <button class="logout-btn" id="logoutBtn">Cerrar sesión</button>
+    </section>
+  </div>
+  <div class="panel-version">v2.0 · Firebase sync</div>
+</div>
+
+<!-- DISH MODAL -->
+<div class="modal-overlay hidden" id="dishModalOverlay"></div>
+<div class="modal hidden" id="dishModal">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3 id="dishModalTitle">Agregar plato</h3>
+      <button class="modal-close" id="closeDishModalBtn">×</button>
+    </div>
+    <form id="dishForm">
+      <label class="field-label">Nombre del plato</label>
+      <input type="text" id="dishNameInput" placeholder="Ej: Locro casero" autocomplete="off">
+      <label class="field-label">Ingredientes</label>
+      <div id="ingRows" class="ing-rows"></div>
+      <button type="button" class="add-ing-btn" id="addIngBtn">+ Ingrediente</button>
+      <div class="modal-actions">
+        <button type="submit" class="save-dish-btn" id="saveDishBtnEl">Guardar</button>
+        <button type="button" class="cancel-btn" id="cancelDishBtn">Cancelar</button>
+      </div>
+      <p class="form-msg" id="dishFormMsg"></p>
+    </form>
+  </div>
+</div>
+
+<!-- CHEF MODAL -->
+<div class="modal-overlay hidden" id="chefModalOverlay"></div>
+<div class="modal hidden" id="chefModal">
+  <div class="modal-card" style="background:var(--verde-2);color:var(--crema)">
+    <div class="modal-header">
+      <h3 id="chefModalTitle" style="color:var(--crema)">Agregar cocinero</h3>
+      <button class="modal-close" id="closeChefModalBtn" style="color:rgba(251,243,227,.5)">×</button>
+    </div>
+    <form id="chefForm">
+      <label class="field-label" style="color:var(--mostaza)">Nombre</label>
+      <input type="text" id="chefNameInput" placeholder="Nombre del cocinero"
+        style="background:rgba(251,243,227,.08);border-color:rgba(251,243,227,.2);color:var(--crema)">
+      <label class="field-label" style="color:var(--mostaza);margin-top:14px;display:block">Color</label>
+      <div class="color-picker" id="colorPicker"></div>
+      <div class="modal-actions">
+        <button type="submit" class="save-dish-btn">Guardar</button>
+        <button type="button" class="cancel-btn"
+          style="border-color:rgba(251,243,227,.3);color:var(--crema)"
+          id="cancelChefBtn">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- TUTORIAL MODAL -->
+<div class="modal-overlay hidden" id="tutorialOverlay"></div>
+<div class="modal hidden" id="tutorialModal">
+  <div class="modal-card tutorial-card">
+    <div class="modal-header">
+      <h3>¿Cómo funciona?</h3>
+      <button class="modal-close" id="closeTutorialBtn" style="color:rgba(251,243,227,.5)">×</button>
+    </div>
+    <ul class="tutorial-list">
+      <li>
+        <span class="t-icon">🎲</span>
+        <span><strong>Girá la ruleta</strong>Sortea quién cocina cada día y qué plato le toca, de lunes a viernes, alternando turnos.</span>
+      </li>
+      <li>
+        <span class="t-icon">✅</span>
+        <span><strong>Checklist de ingredientes</strong>En cada tarjeta del día, abrí "Ver ingredientes" y tildá lo que ya tenés en casa.</span>
+      </li>
+      <li>
+        <span class="t-icon">🍽️</span>
+        <span><strong>Gestioná los platos</strong>Agregá o editá platos desde la sección "Platos de la ruleta". Los cambios se sincronizan al instante.</span>
+      </li>
+      <li>
+        <span class="t-icon">⚙️</span>
+        <span><strong>Configurá los cocineros</strong>En el ícono ⚙ podés agregar, editar o eliminar cocineros y cambiar sus colores.</span>
+      </li>
+      <li>
+        <span class="t-icon">🔄</span>
+        <span><strong>Sync en tiempo real</strong>Todo se guarda en la nube. Abrí la app desde cualquier celular o compu con la misma cuenta y verán el mismo estado.</span>
+      </li>
+    </ul>
+    <div style="text-align:center">
+      <button class="spin-btn" style="font-size:.9rem;padding:12px 28px" id="gotItBtn">¡Entendido!</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toastContainer" class="toast-container"></div>
+
+<script>
+/* ============================================================
+   CONFIGURACIÓN DE FIREBASE
+   → Seguí las instrucciones de FIREBASE_SETUP.md
+   → Reemplazá los valores PASTE_... con los de tu proyecto
+============================================================ */
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyBLpW-Aw7VXbJ5dT0w547-Yu5oYfb7nn_8",
+  authDomain:        "ruleta-almuerzo.firebaseapp.com",
+  projectId:         "ruleta-almuerzo",
+  storageBucket:     "ruleta-almuerzo.firebasestorage.app",
+  messagingSenderId: "274095524139"",
+  appId:             "1:274095524139:web:009de51694a5fb3e369d6e",
+  measurementId:     "G-K6PJJDD96W"
+};
+
+/* ---- guard: config sin configurar ---- */
+if (FIREBASE_CONFIG.apiKey === "AIzaSyBLpW-Aw7VXbJ5dT0w547-Yu5oYfb7nn_8") {
+  document.getElementById("loadingOverlay").innerHTML = `
+    <div style="text-align:center;padding:20px">
+      <div style="font-size:2rem;margin-bottom:14px">⚙️</div>
+      <h2 style="font-family:var(--display);font-weight:400;color:var(--mostaza);margin:0 0 10px">Configuración pendiente</h2>
+      <p style="color:rgba(251,243,227,.7);max-width:360px;margin:0 auto">
+        Antes de usar la app, configurá Firebase.<br>
+        Seguí las instrucciones del archivo <code style="color:var(--mostaza)">FIREBASE_SETUP.md</code>.
+      </p>
+    </div>`;
+  throw new Error("Firebase config no configurado.");
+}
+
+firebase.initializeApp(FIREBASE_CONFIG);
+const auth = firebase.auth();
+const db   = firebase.firestore();
+
+/* ============================================================
+   CONSTANTES
+============================================================ */
+const FAKE_DOMAIN = "@ruletaalmuerzo.app";
+const DAYS = ["Lunes","Martes","Miércoles","Jueves","Viernes"];
+const CHEF_COLORS = ["#C97064","#3E7C8A","#D4923A","#5C8A52","#7B6EA8","#C8623A","#4A6FA5","#8A4A6E"];
+
+const BASE_DISHES = [
+  {name:"Tarta de verdura",ingredients:["Masa de tarta","Cebolla","Pimiento morrón","Huevos","Queso cremoso","Verdura principal (acelga, espinaca, zucchini o calabaza)","Jamón (opcional)"]},
+  {name:"Tarta de pollo y calabaza",ingredients:["Masa de tarta","Cebolla","Pimiento morrón","Suprema de pollo","Calabaza"]},
+  {name:"Empanadas de verdura",ingredients:["Masa de empanadas","Cebolla","Pimiento morrón","Huevo cocido","Verdura principal (acelga, espinaca, zucchini o calabaza)"]},
+  {name:"Empanadas de carne",ingredients:["Masa de empanadas","Cebolla","Cebolla de verdeo","Huevo cocido","Salsa de tomate","Pimiento morrón"]},
+  {name:"Verduras asadas al horno con huevos fritos",ingredients:["Verduras a elección (berenjenas, zucchini, zapallo anco, coliflor)","Huevos"]},
+  {name:"Arrocito a la jardinera con berenjenas salteadas",ingredients:["Arroz blanco","Choclo","Arvejas","Cebolla","Berenjenas","Salsa de soja"]},
+  {name:"Fideos con salsa y albóndigas",ingredients:["Fideos (tallarines o spaghetti)","Carne picada","Pan rallado","Huevos","Salsa de tomate"]},
+  {name:"Milanesas de berenjena con ensalada",ingredients:["Berenjenas","Pan rallado","Huevos","Tomates frescos","Lechuga","Semillas para ensalada"]},
+  {name:"Milanesas de carne con queso",ingredients:["Corte para milanesas (bife de novillo o nalga)","Pan rallado","Huevos","Queso cremoso","Salsa de tomate (napolitana, opcional)","Provenzal (ajo y perejil)"]},
+  {name:"Salteado de verduras con arroz",ingredients:["Arroz","Cebolla","Pimiento morrón","Ajo","Zanahoria","Salsa de soja (opcional)","Carne con vino (opcional)"]},
+  {name:"Discos de merluza con arroz",ingredients:["Discos de merluza","Arroz","Condimentos"]},
+  {name:"Salteado de pollo y champiñones",ingredients:["Suprema de pollo o pata de pollo","Champiñones","Cebolla","Pimiento morrón","Ajo"]},
+  {name:"Salteado de brócoli, champiñones y carne molida",ingredients:["Brócoli","Champiñones","Carne molida","Cebolla","Pimiento morrón","Ajo"]},
+  {name:"Zapallitos al horno en rodajas",ingredients:["Zapallo anco","Ajo","Queso cremoso"]},
+  {name:"Chorizo a la pomarola",ingredients:["Chorizo","Salsa de tomate","Vino","Cebolla (opcional)","Tortillas (para acompañar)"]},
+  {name:"Taquitos",ingredients:["Tortillas","Carne salteada","Verduras salteadas"]},
+  {name:"Bifecito con queso",ingredients:["Bife a elección","Queso cremoso"]},
+  {name:"Fideos con salsa naranja",ingredients:["Fideos (tallarines, spaghetti o tirabuzón)","Puré de tomate + queso crema (opción A)","Salsa de tomate + queso mantecoso (opción B)"]},
+  {name:"Ravioles con salsa",ingredients:["Ravioles","Salsa de tomate","Cebolla o ajo"]}
+];
+
+/* ============================================================
+   ESTADO GLOBAL
+============================================================ */
+let currentUser   = null;
+let userProfile   = null;   // { username, chefs:[], onboardingDone }
+let allDishes     = [];     // array of {id, name, ingredients[]}
+let weekPlan      = null;   // Firestore weekPlan doc data
+let planRendered  = false;
+let spinning      = false;
+let wheelRotation = 0;
+let editingDishId = null;
+let editingChefId = null;
+let selectedColor = CHEF_COLORS[0];
+let unsubListeners= [];
+let savePlanTimer = null;
+
+const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion:reduce)").matches;
+
+/* ============================================================
+   DOM REFS
+============================================================ */
+const $ = id => document.getElementById(id);
+const loadingOverlay   = $("loadingOverlay");
+const authScreen       = $("authScreen");
+const onboardingEl     = $("onboarding");
+const appShell         = $("appShell");
+const authForm         = $("authForm");
+const authUsername     = $("authUsername");
+const authPassword     = $("authPassword");
+const authError        = $("authError");
+const authSubmit       = $("authSubmit");
+const authTabs         = document.querySelectorAll(".auth-tab");
+const chefSetupList    = $("chefSetupList");
+const wizardDots       = $("wizardDots");
+const wheelEl          = $("wheel");
+const wheelLabelsEl    = $("wheelLabels");
+const spinBtn          = $("spinBtn");
+const resultLine       = $("resultLine");
+const saveStatus       = $("saveStatus");
+const weekGrid         = $("weekGrid");
+const summarySection   = $("summarySection");
+const summaryBody      = $("summaryBody");
+const resetBtn         = $("resetBtn");
+const dishListEl       = $("dishListEl");
+const dishCountHint    = $("dishCountHint");
+const ingRowsEl        = $("ingRows");
+const dishNameInput    = $("dishNameInput");
+const dishFormMsg      = $("dishFormMsg");
+const chefNameInput    = $("chefNameInput");
+const colorPickerEl    = $("colorPicker");
+const panelUsername    = $("panelUsername");
+const chefListSettings = $("chefListSettings");
+const chefLegendEl     = $("chefLegend");
+const toastContainer   = $("toastContainer");
+
+/* ============================================================
+   UTILS
+============================================================ */
+const esc = s => String(s).replace(/[&<>"']/g,c=>({
+  '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function shuffle(arr){
+  const a=[...arr];
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  return a;
+}
+function todayIdxMonFri(){const d=new Date().getDay();return d>=1&&d<=5?d-1:-1;}
+
+function getWeekKey(d=new Date()){
+  const date=new Date(d);date.setHours(0,0,0,0);
+  date.setDate(date.getDate()+3-(date.getDay()+6)%7);
+  const w1=new Date(date.getFullYear(),0,4);
+  const wn=1+Math.round(((date-w1)/86400000-3+(w1.getDay()+6)%7)/7);
+  return `${date.getFullYear()}-W${String(wn).padStart(2,'0')}`;
+}
+
+function showToast(msg,type='info',dur=3000){
+  const t=document.createElement('div');
+  t.className=`toast ${type==='error'?'err':type==='ok'?'ok':''}`;
+  t.textContent=msg;toastContainer.appendChild(t);
+  requestAnimationFrame(()=>t.classList.add('visible'));
+  setTimeout(()=>{t.classList.remove('visible');setTimeout(()=>t.remove(),350);},dur);
+}
+
+function genId(prefix='id'){
+  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,7)}`;
+}
+
+function usernameToEmail(u){
+  return u.toLowerCase().replace(/[^a-z0-9._-]/g,'')+FAKE_DOMAIN;
+}
+
+function getPlanSig(p){
+  if(!p||!p.days)return'';
+  return p.weekKey+'|'+p.days.map(d=>d.chefId+':'+d.dish.name).join('|');
+}
+
+/* ============================================================
+   FIREBASE HELPERS
+============================================================ */
+const userRef  = ()=>db.collection('users').doc(currentUser.uid);
+const dishRef  = id=>userRef().collection('dishes').doc(id);
+const dishesRef= ()=>userRef().collection('dishes');
+const planRef  = ()=>userRef().collection('weekPlans').doc('current');
+
+/* ============================================================
+   AUTH
+============================================================ */
+let authMode = 'login'; // 'login' | 'register'
+
+authTabs.forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    authMode = tab.dataset.tab;
+    authTabs.forEach(t=>t.classList.toggle('active', t===tab));
+    authSubmit.textContent = authMode==='register'?'Crear cuenta':'Iniciar sesión';
+    authError.textContent='';
+  });
+});
+
+authForm.addEventListener('submit', async e=>{
+  e.preventDefault();
+  const username = authUsername.value.trim().toLowerCase();
+  const password = authPassword.value;
+  authError.textContent='';
+  authSubmit.disabled=true;
+  authSubmit.textContent='Cargando...';
+  try {
+    if(authMode==='register'){
+      if(username.length<3){throw{code:'custom',message:'El usuario debe tener al menos 3 caracteres.'};}
+      if(password.length<6){throw{code:'custom',message:'La contraseña debe tener al menos 6 caracteres.'};}
+      const email=usernameToEmail(username);
+      const cred=await auth.createUserWithEmailAndPassword(email,password);
+      await userRef().set({
+        username,onboardingDone:false,chefs:[],
+        createdAt:firebase.firestore.FieldValue.serverTimestamp()
+      });
+    } else {
+      await auth.signInWithEmailAndPassword(usernameToEmail(username), password);
+    }
+  } catch(err){
+    const msgs={
+      'auth/email-already-in-use':'Nombre de usuario no disponible.',
+      'auth/user-not-found':'Usuario no encontrado.',
+      'auth/wrong-password':'Contraseña incorrecta.',
+      'auth/invalid-credential':'Usuario o contraseña incorrectos.',
+      'auth/network-request-failed':'Error de red. Verificá tu conexión.',
+      'auth/weak-password':'La contraseña debe tener al menos 6 caracteres.',
+      'custom':err.message
+    };
+    authError.textContent = msgs[err.code] || err.message || 'Ocurrió un error.';
+    authSubmit.disabled=false;
+    authSubmit.textContent = authMode==='register'?'Crear cuenta':'Iniciar sesión';
+  }
+});
+
+/* ============================================================
+   ONBOARDING WIZARD
+============================================================ */
+let wizardStep = 1;
+let wizardChefs = []; // [{name, color}] being set up
+
+function initWizardChefs(){
+  wizardChefs=[
+    {name:'', color:CHEF_COLORS[0]},
+    {name:'', color:CHEF_COLORS[1]}
+  ];
+  renderWizardChefs();
+}
+
+function renderWizardChefs(){
+  chefSetupList.innerHTML='';
+  wizardChefs.forEach((chef,idx)=>{
+    const row=document.createElement('div');
+    row.className='chef-setup-row';
+    row.innerHTML=`
+      <div class="chef-color-dot" style="background:${chef.color}"
+        data-idx="${idx}" title="Cambiar color"></div>
+      <input type="text" placeholder="Nombre del cocinero ${idx+1}" value="${esc(chef.name)}"
+        data-idx="${idx}">
+      ${wizardChefs.length>1?`<button type="button" class="chef-remove-btn" data-idx="${idx}">×</button>`:''}
+    `;
+    chefSetupList.appendChild(row);
+  });
+  chefSetupList.querySelectorAll('input').forEach(inp=>{
+    inp.addEventListener('input', e=>{wizardChefs[+e.target.dataset.idx].name=e.target.value.trim();});
+  });
+  chefSetupList.querySelectorAll('.chef-color-dot').forEach(dot=>{
+    dot.addEventListener('click',e=>{
+      const idx=+e.currentTarget.dataset.idx;
+      const cur=CHEF_COLORS.indexOf(wizardChefs[idx].color);
+      wizardChefs[idx].color=CHEF_COLORS[(cur+1)%CHEF_COLORS.length];
+      renderWizardChefs();
+    });
+  });
+  chefSetupList.querySelectorAll('.chef-remove-btn').forEach(btn=>{
+    btn.addEventListener('click',e=>{
+      wizardChefs.splice(+e.currentTarget.dataset.idx,1);
+      renderWizardChefs();
+    });
+  });
+}
+
+function goWizardStep(step){
+  document.querySelectorAll('.wizard-step').forEach(s=>{
+    s.classList.toggle('hidden', +s.dataset.step!==step);
+  });
+  wizardStep=step;
+  document.querySelectorAll('.wizard-dot').forEach((d,i)=>{
+    d.classList.toggle('active', i===step-1);
+  });
+}
+
+function showOnboarding(){
+  authScreen.classList.add('hidden');
+  appShell.classList.add('hidden');
+  onboardingEl.classList.remove('hidden');
+  // Build wizard dots
+  wizardDots.innerHTML='';
+  [1,2,3].forEach(i=>{
+    const d=document.createElement('div');
+    d.className='wizard-dot'+(i===1?' active':'');
+    wizardDots.appendChild(d);
+  });
+  initWizardChefs();
+  goWizardStep(1);
+}
+
+// Wizard navigation
+document.querySelectorAll('.wizard-next[data-next]').forEach(btn=>{
+  btn.addEventListener('click',()=>goWizardStep(+btn.dataset.next));
+});
+document.querySelectorAll('.wizard-back[data-back]').forEach(btn=>{
+  btn.addEventListener('click',()=>goWizardStep(+btn.dataset.back));
+});
+
+$('addWizardChefBtn').addEventListener('click',()=>{
+  if(wizardChefs.length>=6){showToast('Máximo 6 cocineros.','error');return;}
+  wizardChefs.push({name:'',color:CHEF_COLORS[wizardChefs.length%CHEF_COLORS.length]});
+  renderWizardChefs();
+});
+
+$('chefsDoneBtn').addEventListener('click',()=>{
+  const err=$('chefWizardError');
+  const valid=wizardChefs.filter(c=>c.name.trim());
+  if(valid.length===0){err.textContent='Ingresá al menos un nombre.';err.classList.remove('hidden');return;}
+  err.classList.add('hidden');
+  goWizardStep(3);
+});
+
+$('finishOnboardingBtn').addEventListener('click', async()=>{
+  const chefs=wizardChefs.filter(c=>c.name.trim()).map(c=>({id:genId('chef'),name:c.name.trim(),color:c.color}));
+  try{
+    await userRef().update({chefs, onboardingDone:true});
+    await initializeBaseDishes();
+    onboardingEl.classList.add('hidden');
+    showMainApp();
+    setupListeners();
+    setTimeout(()=>openTutorial(),600);
+  }catch(err){
+    showToast('Error al guardar. Intentá de nuevo.','error');
+    console.error(err);
+  }
+});
+
+async function initializeBaseDishes(){
+  const batch=db.batch();
+  BASE_DISHES.forEach((dish,i)=>{
+    const ref=dishesRef().doc();
+    batch.set(ref,{name:dish.name,ingredients:dish.ingredients,order:i,
+      createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+  });
+  await batch.commit();
+}
+
+/* ============================================================
+   MAIN APP SHOW/HIDE
+============================================================ */
+function showMainApp(){
+  loadingOverlay.classList.add('hidden');
+  authScreen.classList.add('hidden');
+  onboardingEl.classList.add('hidden');
+  appShell.classList.remove('hidden');
+}
+
+/* ============================================================
+   FIRESTORE LISTENERS (real-time sync)
+============================================================ */
+function setupListeners(){
+  teardownListeners();
+
+  // Profile listener (chefs list, etc.)
+  const unsubProfile = userRef().onSnapshot(snap=>{
+    if(!snap.exists) return;
+    const data=snap.data();
+    userProfile={...userProfile,...data};
+    renderChefLegend(data.chefs||[]);
+    renderWheelUI(data.chefs||[]);
+    renderChefListSettings(data.chefs||[]);
+    panelUsername.textContent=`@${data.username||''}`;
+    saveStatus.textContent='☁️ Sincronizado con Firebase';
+    // Re-snap wheel if plan already rendered (profile may load before plan listener)
+    if(planRendered && weekPlan){
+      const wi=(data.chefs||[]).findIndex(c=>c.id===weekPlan.days[0].chefId);
+      if(wi>=0) snapWheel(wi, data.chefs);
+    }
+  },err=>console.error('profile listener error',err));
+
+  // Dishes listener (sorted client-side; no Firestore index needed)
+  const unsubDishes = dishesRef()
+    .onSnapshot(snap=>{
+      allDishes = snap.docs.map(d=>({id:d.id,...d.data()}))
+        .sort((a,b)=>(a.order??9999)-(b.order??9999));
+      renderDishList();
+      updateDishCount();
+    }, err=>console.error('dishes listener error',err));
+
+  // Week plan listener
+  const unsubPlan = planRef().onSnapshot(snap=>{
+    if(spinning) return;
+    const currentWeek=getWeekKey();
+    if(!snap.exists||snap.data().weekKey!==currentWeek){
+      weekPlan=null; planRendered=false;
+      weekGrid.innerHTML='';
+      summarySection.classList.add('hidden');
+      resultLine.textContent='Todavía no se giró esta semana.';
+      return;
+    }
+    const data=snap.data();
+    const newSig=getPlanSig(data), oldSig=getPlanSig(weekPlan);
+    if(newSig!==oldSig){
+      weekPlan=data;
+      renderWeekFull(false);
+      // Restore wheel position and result line
+      const chefs=userProfile?.chefs||[];
+      const wi=chefs.findIndex(c=>c.id===weekPlan.days[0].chefId);
+      if(wi>=0) snapWheel(wi, chefs);
+      resultLine.textContent=`Esta semana arranca cocinando: ${weekPlan.days[0].chefName}`;
+      planRendered=true;
+    } else {
+      weekPlan=data;
+      syncCheckboxes();
+    }
+  },err=>console.error('plan listener error',err));
+
+  unsubListeners=[unsubProfile, unsubDishes, unsubPlan];
+}
+
+function teardownListeners(){
+  unsubListeners.forEach(u=>u());
+  unsubListeners=[];
+}
+
+/* ============================================================
+   WHEEL (dynamic N chefs)
+============================================================ */
+function buildWheelGradient(chefs){
+  const n=chefs.length, seg=360/n, from=-seg/2;
+  const stops=chefs.map((c,i)=>`${c.color} ${i*seg}deg ${(i+1)*seg}deg`);
+  return `conic-gradient(from ${from}deg, ${stops.join(',')})`;
+}
+
+function renderWheelUI(chefs){
+  if(!chefs||chefs.length===0) return;
+  wheelEl.style.background=buildWheelGradient(chefs);
+  positionWheelLabels(chefs, wheelRotation);
+}
+
+function positionWheelLabels(chefs, rot){
+  const n=chefs.length, seg=360/n, from=-seg/2;
+  wheelLabelsEl.innerHTML='';
+  chefs.forEach((chef,i)=>{
+    const angleDeg=from+(i+0.5)*seg;
+    const rad=angleDeg*Math.PI/180;
+    const r=32; // % of radius
+    const x=50+r*Math.sin(rad);
+    const y=50-r*Math.cos(rad);
+    const label=document.createElement('div');
+    label.className='wheel-label';
+    label.style.left=`${x}%`;
+    label.style.top=`${y}%`;
+    label.style.transform=`translate(-50%,-50%) rotate(${-rot}deg)`;
+    label.textContent=chef.name.toUpperCase().substring(0,7);
+    wheelLabelsEl.appendChild(label);
+  });
+}
+
+function setWheelTransform(deg, animate=true){
+  const dur=animate&&!prefersReducedMotion?'transform 2.4s cubic-bezier(.17,.89,.32,1.02)':'none';
+  wheelEl.style.transition=dur;
+  wheelLabelsEl.style.transition=dur;
+  wheelEl.style.transform=`rotate(${deg}deg)`;
+  wheelLabelsEl.style.transform=`rotate(${deg}deg)`;
+  wheelLabelsEl.querySelectorAll('.wheel-label').forEach(l=>{
+    l.style.transition=dur;
+    l.style.transform=`translate(-50%,-50%) rotate(${-deg}deg)`;
+  });
+}
+
+function getTargetAngle(winnerIdx, n){
+  const seg=360/n;
+  return ((360-winnerIdx*seg)%360+360)%360;
+}
+
+function animateWheel(winnerIdx, chefs, animate=true){
+  const n=chefs.length;
+  const target=getTargetAngle(winnerIdx,n);
+  const curMod=((wheelRotation%360)+360)%360;
+  let delta=((target-curMod)+360)%360;
+  if(delta<5) delta+=360;
+  const extra=animate&&!prefersReducedMotion?1440:0;
+  wheelRotation+=extra+delta;
+  setWheelTransform(wheelRotation,animate);
+}
+
+function snapWheel(winnerIdx, chefs){
+  const n=chefs.length;
+  wheelRotation=getTargetAngle(winnerIdx,n);
+  setWheelTransform(wheelRotation,false);
+}
+
+/* ============================================================
+   CHEF LEGEND
+============================================================ */
+function renderChefLegend(chefs){
+  chefLegendEl.innerHTML=chefs.map(c=>`
+    <span class="legend-dot">
+      <span class="dot" style="background:${c.color}"></span>${esc(c.name)}
+    </span>`).join('');
+}
+
+/* ============================================================
+   WEEK PLAN – BUILD & SPIN
+============================================================ */
+function buildNewPlan(chefs, dishes){
+  const n=chefs.length;
+  if(n===0||dishes.length===0) return null;
+  const startIdx=Math.floor(Math.random()*n);
+  const pool=shuffle(dishes);
+  const chosen=[];
+  for(let i=0;i<5;i++) chosen.push(pool[i%pool.length]);
+  return {
+    weekKey:getWeekKey(),
+    startChefIdx:startIdx,
+    days:DAYS.map((day,i)=>{
+      const chefIdx=(startIdx+i)%n;
+      const chef=chefs[chefIdx];
+      const dish=chosen[i];
+      return{day, chefId:chef.id, chefName:chef.name, chefColor:chef.color,
+        dish:{name:dish.name,ingredients:dish.ingredients},
+        checked:dish.ingredients.map(()=>false)};
+    })
+  };
+}
+
+async function savePlan(){
+  if(!weekPlan||!currentUser) return;
+  try{
+    await planRef().set({...weekPlan,
+      updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
+  }catch(e){showToast('Error al guardar el plan.','error');}
+}
+
+function scheduleSave(){
+  clearTimeout(savePlanTimer);
+  savePlanTimer=setTimeout(savePlan,800);
+}
+
+/* ============================================================
+   SPIN BUTTON
+============================================================ */
+spinBtn.addEventListener('click', async()=>{
+  if(spinning||!userProfile||!userProfile.chefs) return;
+  const chefs=userProfile.chefs;
+  if(chefs.length===0){showToast('Primero agregá cocineros en Ajustes.','error');return;}
+  if(allDishes.length===0){showToast('Primero agregá platos a la ruleta.','error');return;}
+  spinning=true; spinBtn.disabled=true;
+  resultLine.textContent='Girando...';
+
+  weekPlan=buildNewPlan(chefs, allDishes);
+  const winnerIdx=(userProfile.chefs.findIndex(c=>c.id===weekPlan.days[0].chefId));
+  animateWheel(winnerIdx>=0?winnerIdx:0, chefs, true);
+  renderWeekFull(true);
+  planRendered=true;
+
+  const wheelDelay=prefersReducedMotion?0:1700;
+  setTimeout(()=>{
+    resultLine.textContent=`Esta semana arranca cocinando: ${weekPlan.days[0].chefName}`;
+    setTimeout(()=>{
+      buildSummary();
+      summarySection.classList.remove('hidden');
+      spinning=false; spinBtn.disabled=false;
+      savePlan();
+    }, DAYS.length*220+850);
+  }, wheelDelay);
+});
+
+resetBtn.addEventListener('click',()=>{
+  spinBtn.dispatchEvent(new Event('click'));
+  window.scrollTo({top:0,behavior:prefersReducedMotion?'auto':'smooth'});
+});
+
+/* ============================================================
+   RENDER WEEK CARDS
+============================================================ */
+function renderWeekFull(animate){
+  weekGrid.innerHTML='';
+  summarySection.classList.add('hidden');
+  if(!weekPlan) return;
+  const todayIdx=todayIdxMonFri();
+  weekPlan.days.forEach((entry,i)=>{
+    const card=document.createElement('div');
+    card.className='card'+(i===todayIdx?' is-today':'');
+    card.dataset.index=i;
+    card.innerHTML=`
+      <div class="day-name">${entry.day}</div>
+      <span class="chef-tag" style="background:${entry.chefColor||'#666'}">${esc(entry.chefName)}</span>
+      <p class="dish-name ${animate?'spinning':''}" data-role="dish-name">${animate?'–':esc(entry.dish.name)}</p>
+      <button class="toggle-ing hidden" data-role="toggle">Ver ingredientes ▾</button>
+      <div class="ing-list hidden" data-role="ing-list"></div>`;
+    weekGrid.appendChild(card);
+    if(animate){slotReveal(i,entry,i*220,700);}
+    else{revealCard(i,entry);}
+  });
+  if(!animate) buildSummary();
+}
+
+function revealCard(i, entry){
+  const card=weekGrid.querySelector(`.card[data-index="${i}"]`);
+  if(!card) return;
+  const nameEl=card.querySelector('[data-role="dish-name"]');
+  const toggleBtn=card.querySelector('[data-role="toggle"]');
+  const ingList=card.querySelector('[data-role="ing-list"]');
+  nameEl.textContent=entry.dish.name; nameEl.classList.remove('spinning');
+
+  // Ratio badge
+  const badge=document.createElement('span');
+  badge.className='ratio-badge'; badge.dataset.role='ratio-badge';
+  card.appendChild(badge);
+
+  // Ingredient checklist
+  ingList.innerHTML=entry.dish.ingredients.map((ing,idx)=>`
+    <label><input type="checkbox" data-day="${i}" data-ing="${idx}"
+      ${entry.checked[idx]?'checked':''}>${esc(ing)}</label>`).join('');
+
+  toggleBtn.classList.remove('hidden');
+  toggleBtn.addEventListener('click',()=>{
+    const hidden=ingList.classList.contains('hidden');
+    ingList.classList.toggle('hidden');
+    toggleBtn.textContent=hidden?'Ocultar ingredientes ▴':'Ver ingredientes ▾';
+  });
+
+  ingList.querySelectorAll('input[type=checkbox]').forEach(box=>{
+    box.addEventListener('change',e=>{
+      const di=+e.target.dataset.day, ii=+e.target.dataset.ing;
+      if(!weekPlan||!weekPlan.days[di]) return;
+      weekPlan.days[di].checked[ii]=e.target.checked;
+      updateRatio(di); updateSummaryRow(di);
+      scheduleSave();
+    });
+  });
+
+  updateRatio(i);
+  requestAnimationFrame(()=>card.classList.add('revealed'));
+}
+
+function slotReveal(i, entry, delayMs, durMs){
+  if(prefersReducedMotion){setTimeout(()=>revealCard(i,entry),delayMs);return;}
+  const card=weekGrid.querySelector(`.card[data-index="${i}"]`);
+  const nameEl=card.querySelector('[data-role="dish-name"]');
+  setTimeout(()=>{
+    const start=Date.now();
+    const iv=setInterval(()=>{
+      const r=allDishes[Math.floor(Math.random()*allDishes.length)];
+      if(r) nameEl.textContent=r.name;
+      if(Date.now()-start>durMs){clearInterval(iv);revealCard(i,entry);}
+    },70);
+  },delayMs);
+}
+
+function updateRatio(i){
+  if(!weekPlan||!weekPlan.days[i]) return;
+  const entry=weekPlan.days[i];
+  const card=weekGrid.querySelector(`.card[data-index="${i}"]`);
+  const badge=card?.querySelector('[data-role="ratio-badge"]');
+  if(!badge) return;
+  const have=entry.checked.filter(Boolean).length, total=entry.checked.length;
+  badge.textContent=`${have}/${total}`;
+  badge.className='ratio-badge '+(have===total?'ratio-full':have===0?'ratio-low':'ratio-mid');
+}
+
+/* ============================================================
+   SUMMARY TABLE
+============================================================ */
+function buildSummary(){
+  if(!weekPlan) return;
+  summaryBody.innerHTML=weekPlan.days.map((entry,i)=>`
+    <tr data-row="${i}">
+      <td>${entry.day}</td>
+      <td><span class="chef-tag" style="background:${entry.chefColor||'#666'}">${esc(entry.chefName)}</span></td>
+      <td>${esc(entry.dish.name)}</td>
+      <td class="ratio-cell" data-role="summary-ratio">
+        ${entry.checked.filter(Boolean).length}/${entry.checked.length}
+      </td>
+    </tr>`).join('');
+  summarySection.classList.remove('hidden');
+}
+
+function updateSummaryRow(i){
+  if(!weekPlan||!weekPlan.days[i]) return;
+  const entry=weekPlan.days[i];
+  const cell=summaryBody.querySelector(`tr[data-row="${i}"] [data-role="summary-ratio"]`);
+  if(cell) cell.textContent=`${entry.checked.filter(Boolean).length}/${entry.checked.length}`;
+}
+
+function syncCheckboxes(){
+  if(!weekPlan) return;
+  weekPlan.days.forEach((day,di)=>{
+    day.checked.forEach((checked,ii)=>{
+      const cb=weekGrid.querySelector(`input[data-day="${di}"][data-ing="${ii}"]`);
+      if(cb&&cb.checked!==checked) cb.checked=checked;
+    });
+    updateRatio(di); updateSummaryRow(di);
+  });
+}
+
+/* ============================================================
+   DISH MANAGER
+============================================================ */
+function updateDishCount(){
+  dishCountHint.textContent=allDishes.length>0
+    ?`${allDishes.length} platos cargados. Editá o agregá los tuyos.`
+    :'Sin platos aún. Agregá el primero con el botón.';
+}
+
+function renderDishList(){
+  if(allDishes.length===0){
+    dishListEl.innerHTML='<li class="dish-loading">No hay platos. Agregá el primero →</li>';
+    return;
+  }
+  dishListEl.innerHTML=allDishes.map(d=>`
+    <li>
+      <span>${esc(d.name)} <span style="opacity:.5">(${d.ingredients.length} ingredientes)</span></span>
+      <span class="row-actions">
+        <button type="button" class="row-action edit-dish" data-id="${d.id}">editar</button>
+        <button type="button" class="row-action remove-dish" data-id="${d.id}">quitar</button>
+      </span>
+    </li>`).join('');
+  dishListEl.querySelectorAll('.edit-dish').forEach(b=>
+    b.addEventListener('click',()=>openDishModal(b.dataset.id)));
+  dishListEl.querySelectorAll('.remove-dish').forEach(b=>
+    b.addEventListener('click',()=>deleteDish(b.dataset.id)));
+}
+
+/* Dish Modal open/close */
+function openDishModal(dishId=null){
+  editingDishId=dishId;
+  $('dishModalTitle').textContent=dishId?'Editar plato':'Agregar plato';
+  $('saveDishBtnEl').textContent=dishId?'Guardar cambios':'Guardar';
+  dishNameInput.value='';
+  ingRowsEl.innerHTML='';
+  dishFormMsg.textContent='';
+  dishFormMsg.className='form-msg';
+
+  if(dishId){
+    const dish=allDishes.find(d=>d.id===dishId);
+    if(dish){
+      dishNameInput.value=dish.name;
+      dish.ingredients.forEach(ing=>ingRowsEl.appendChild(makeIngRow(ing)));
+    }
+  } else {
+    ingRowsEl.appendChild(makeIngRow(''));
+    ingRowsEl.appendChild(makeIngRow(''));
+  }
+
+  $('dishModal').classList.remove('hidden');
+  $('dishModalOverlay').classList.remove('hidden');
+  dishNameInput.focus();
+}
+
+function closeDishModal(){
+  $('dishModal').classList.add('hidden');
+  $('dishModalOverlay').classList.add('hidden');
+  editingDishId=null;
+}
+
+function makeIngRow(val=''){
+  const row=document.createElement('div');
+  row.className='ing-row';
+  row.innerHTML=`<input type="text" placeholder="Ingrediente" value="${esc(val)}">
+    <button type="button" class="remove-ing" title="Quitar">×</button>`;
+  row.querySelector('.remove-ing').addEventListener('click',()=>{
+    if(ingRowsEl.children.length>1) row.remove();
+    else row.querySelector('input').value='';
+  });
+  return row;
+}
+
+$('addIngBtn').addEventListener('click',()=>{
+  const row=makeIngRow('');
+  ingRowsEl.appendChild(row);
+  row.querySelector('input').focus();
+});
+
+$('openAddDishBtn').addEventListener('click',()=>openDishModal());
+$('closeDishModalBtn').addEventListener('click',closeDishModal);
+$('cancelDishBtn').addEventListener('click',closeDishModal);
+$('dishModalOverlay').addEventListener('click',closeDishModal);
+
+$('dishForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const name=dishNameInput.value.trim();
+  const ingredients=[...ingRowsEl.querySelectorAll('input')]
+    .map(i=>i.value.trim()).filter(Boolean);
+  dishFormMsg.textContent=''; dishFormMsg.className='form-msg';
+  if(!name){dishFormMsg.textContent='Falta el nombre.';dishFormMsg.className='form-msg error';dishNameInput.focus();return;}
+  if(ingredients.length===0){dishFormMsg.textContent='Agregá al menos un ingrediente.';dishFormMsg.className='form-msg error';return;}
+
+  try{
+    if(editingDishId){
+      await dishRef(editingDishId).update({name,ingredients,
+        updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
+      showToast(`"${name}" actualizado.`,'ok');
+    } else {
+      await dishesRef().add({name,ingredients,order:allDishes.length,
+        createdAt:firebase.firestore.FieldValue.serverTimestamp()});
+      showToast(`"${name}" agregado a la ruleta.`,'ok');
+    }
+    closeDishModal();
+  }catch(err){
+    dishFormMsg.textContent='Error al guardar.'; dishFormMsg.className='form-msg error';
+    console.error(err);
+  }
+});
+
+async function deleteDish(id){
+  if(!confirm('¿Eliminás este plato de la ruleta?')) return;
+  try{
+    await dishRef(id).delete();
+    showToast('Plato eliminado.','ok');
+  }catch(err){showToast('Error al eliminar.','error');}
+}
+
+/* ============================================================
+   SETTINGS PANEL
+============================================================ */
+function openSettings(){
+  $('settingsPanel').classList.remove('hidden');
+  $('panelOverlay').classList.remove('hidden');
+}
+function closeSettings(){
+  $('settingsPanel').classList.add('hidden');
+  $('panelOverlay').classList.add('hidden');
+}
+$('settingsBtn').addEventListener('click',openSettings);
+$('closeSettingsBtn').addEventListener('click',closeSettings);
+$('panelOverlay').addEventListener('click',closeSettings);
+
+function renderChefListSettings(chefs){
+  chefListSettings.innerHTML=chefs.map(c=>`
+    <div class="panel-chef-row">
+      <div class="panel-chef-color" style="background:${c.color}"></div>
+      <div class="panel-chef-name">${esc(c.name)}</div>
+      <div class="panel-chef-actions">
+        <button class="panel-icon-btn edit-chef-btn" data-id="${c.id}">editar</button>
+        ${chefs.length>1?`<button class="panel-icon-btn danger remove-chef-btn" data-id="${c.id}">quitar</button>`:''}
+      </div>
+    </div>`).join('');
+  chefListSettings.querySelectorAll('.edit-chef-btn').forEach(b=>
+    b.addEventListener('click',()=>openChefModal(b.dataset.id)));
+  chefListSettings.querySelectorAll('.remove-chef-btn').forEach(b=>
+    b.addEventListener('click',()=>removeChef(b.dataset.id)));
+}
+
+$('addChefSettingsBtn').addEventListener('click',()=>openChefModal(null));
+$('logoutBtn').addEventListener('click',async()=>{
+  if(!confirm('¿Cerrar sesión?')) return;
+  teardownListeners();
+  weekPlan=null; userProfile=null; allDishes=[];
+  planRendered=false; wheelRotation=0;
+  await auth.signOut();
+});
+
+/* ============================================================
+   CHEF MODAL
+============================================================ */
+function openChefModal(chefId){
+  editingChefId=chefId;
+  $('chefModalTitle').textContent=chefId?'Editar cocinero':'Agregar cocinero';
+  chefNameInput.value='';
+  selectedColor=CHEF_COLORS[0];
+  if(chefId&&userProfile?.chefs){
+    const chef=userProfile.chefs.find(c=>c.id===chefId);
+    if(chef){chefNameInput.value=chef.name;selectedColor=chef.color;}
+  }
+  renderColorPicker();
+  $('chefModal').classList.remove('hidden');
+  $('chefModalOverlay').classList.remove('hidden');
+  chefNameInput.focus();
+}
+
+function closeChefModal(){
+  $('chefModal').classList.add('hidden');
+  $('chefModalOverlay').classList.add('hidden');
+  editingChefId=null;
+}
+
+function renderColorPicker(){
+  colorPickerEl.innerHTML=CHEF_COLORS.map(c=>`
+    <div class="color-swatch ${c===selectedColor?'selected':''}"
+      style="background:${c}" data-color="${c}"></div>`).join('');
+  colorPickerEl.querySelectorAll('.color-swatch').forEach(s=>{
+    s.addEventListener('click',()=>{
+      selectedColor=s.dataset.color;
+      colorPickerEl.querySelectorAll('.color-swatch').forEach(x=>
+        x.classList.toggle('selected',x.dataset.color===selectedColor));
+    });
+  });
+}
+
+$('closeChefModalBtn').addEventListener('click',closeChefModal);
+$('cancelChefBtn').addEventListener('click',closeChefModal);
+$('chefModalOverlay').addEventListener('click',closeChefModal);
+
+$('chefForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const name=chefNameInput.value.trim();
+  if(!name){showToast('Ingresá un nombre.','error');return;}
+  const chefs=[...(userProfile?.chefs||[])];
+  if(editingChefId){
+    const idx=chefs.findIndex(c=>c.id===editingChefId);
+    if(idx>-1) chefs[idx]={...chefs[idx],name,color:selectedColor};
+  } else {
+    if(chefs.length>=6){showToast('Máximo 6 cocineros.','error');return;}
+    chefs.push({id:genId('chef'),name,color:selectedColor});
+  }
+  try{
+    await userRef().update({chefs});
+    closeChefModal();
+    closeSettings();
+    showToast(editingChefId?'Cocinero actualizado.':'Cocinero agregado.','ok');
+  }catch(err){showToast('Error al guardar.','error');console.error(err);}
+});
+
+async function removeChef(id){
+  if(!confirm('¿Quitás a este cocinero de la ruleta?')) return;
+  const chefs=(userProfile?.chefs||[]).filter(c=>c.id!==id);
+  try{
+    await userRef().update({chefs});
+    showToast('Cocinero eliminado.','ok');
+  }catch(err){showToast('Error al eliminar.','error');}
+}
+
+/* ============================================================
+   TUTORIAL MODAL
+============================================================ */
+function openTutorial(){
+  $('tutorialModal').classList.remove('hidden');
+  $('tutorialOverlay').classList.remove('hidden');
+}
+function closeTutorial(){
+  $('tutorialModal').classList.add('hidden');
+  $('tutorialOverlay').classList.add('hidden');
+}
+$('tutorialBtn').addEventListener('click',openTutorial);
+$('closeTutorialBtn').addEventListener('click',closeTutorial);
+$('gotItBtn').addEventListener('click',closeTutorial);
+$('tutorialOverlay').addEventListener('click',closeTutorial);
+
+/* ============================================================
+   AUTH STATE CHANGE → entry point
+============================================================ */
+auth.onAuthStateChanged(async user=>{
+  if(user){
+    currentUser=user;
+    // Load profile
+    const snap=await userRef().get();
+    if(!snap.exists||!snap.data().onboardingDone){
+      loadingOverlay.classList.add('hidden');
+      userProfile=snap.exists?snap.data():{};
+      showOnboarding();
+    } else {
+      userProfile=snap.data();
+      showMainApp();
+      setupListeners();
+    }
+  } else {
+    currentUser=null; userProfile=null; weekPlan=null;
+    allDishes=[]; planRendered=false; wheelRotation=0;
+    teardownListeners();
+    loadingOverlay.classList.add('hidden');
+    authScreen.classList.remove('hidden');
+  }
+});
+</script>
+</body>
+</html>
